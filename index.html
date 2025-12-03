@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PDF Folder Viewer</title>
+<style>
+  :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{margin:0;background:#f6f7fb;color:#111}
+  header{background:linear-gradient(90deg,#3b82f6,#6366f1);color:#fff;padding:18px 20px}
+  h1{margin:0;font-size:18px}
+  .wrap{max-width:980px;margin:22px auto;padding:18px;background:#fff;border-radius:10px;box-shadow:0 6px 20px rgba(16,24,40,0.08)}
+  label{display:block;margin:10px 0 6px;font-weight:600}
+  input[type=text], textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px}
+  .row{display:flex;gap:10px;margin-top:10px}
+  button{background:#111827;color:#fff;border:none;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+  button.secondary{background:#6b7280}
+  .list{margin-top:18px}
+  .item{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;border:1px solid #e6e9ef;margin-bottom:8px}
+  .meta{max-width:60%}
+  .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .actions{display:flex;gap:8px}
+  .viewer{margin-top:18px;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0}
+  iframe{width:100%;height:720px;border:0}
+  .hint{font-size:13px;color:#525252;margin-top:8px}
+  footer{margin-top:18px;font-size:13px;color:#6b7280;}
+  @media(max-width:720px){.row{flex-direction:column}}
+</style>
+</head>
+<body>
+<header>
+  <h1>PDF Folder Viewer — single file</h1>
+  <div style="font-size:13px;margin-top:6px;opacity:.92">Paste folder URL or list of PDF links/filenames. Works with Netlify/GitHub Pages-style hosting.</div>
+</header>
+
+<div class="wrap">
+  <label>Base / Folder URL (example: <code>https://your-site.netlify.app/pdfs/</code>)</label>
+  <input id="baseUrl" type="text" placeholder="Paste folder URL (end with /) or leave empty to use relative folder" />
+
+  <div class="row" style="margin-top:12px">
+    <button id="loadFolder">Load folder (try to read directory listing)</button>
+    <button id="scanCommon" class="secondary">Try parse base page</button>
+    <button id="clearList" class="secondary">Clear list</button>
+  </div>
+
+  <label style="margin-top:16px">Or paste PDF URLs / filenames (one per line)</label>
+  <textarea id="pasteList" rows="6" placeholder="https://.../file1.pdf
+file2.pdf
+https://another.com/abc.pdf"></textarea>
+  <div class="row" style="margin-top:8px">
+    <button id="useNames">Use pasted list (build URLs using base)</button>
+    <button id="autoDetect" class="secondary">Auto-detect PDF links from pasted HTML</button>
+  </div>
+
+  <div class="hint">If your host does not expose directory listing, paste filenames and enter the base folder URL, then click <b>Use pasted list</b>.</div>
+
+  <div class="list" id="list"></div>
+
+  <div id="viewerWrap" class="viewer" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:#fafafa;border-bottom:1px solid #edf2f7">
+      <div id="viewerTitle" style="font-weight:700"></div>
+      <div style="display:flex;gap:8px">
+        <a id="viewerDownload" href="#" target="_blank" rel="noopener" style="text-decoration:none;padding:8px 10px;border-radius:6px;background:#111827;color:#fff">Open in new tab</a>
+        <button id="closeViewer" class="secondary">Close</button>
+      </div>
+    </div>
+    <iframe id="pdfFrame" src=""></iframe>
+  </div>
+
+  <footer>Tip: For heavy student traffic host PDFs on <b>Netlify</b> or enable <b>GitHub Pages</b> on your repo folder — those support embedding & CORS.</footer>
+</div>
+
+<script>
+(function(){
+  const baseInput = document.getElementById('baseUrl');
+  const listDiv = document.getElementById('list');
+  const paste = document.getElementById('pasteList');
+  const loadFolderBtn = document.getElementById('loadFolder');
+  const useNamesBtn = document.getElementById('useNames');
+  const scanBtn = document.getElementById('scanCommon');
+  const autoDetectBtn = document.getElementById('autoDetect');
+  const clearBtn = document.getElementById('clearList');
+  const viewerWrap = document.getElementById('viewerWrap');
+  const pdfFrame = document.getElementById('pdfFrame');
+  const viewerTitle = document.getElementById('viewerTitle');
+  const viewerDownload = document.getElementById('viewerDownload');
+  const closeViewer = document.getElementById('closeViewer');
+
+  function normalizeBase(url){
+    if(!url) return '';
+    url = url.trim();
+    // If user provided a GitHub repo "https://github.com/USER/REPO/blob/main/PDF/"
+    // suggest converting to pages/raw will be up to user. This script will not convert automatically.
+    if(!url.endsWith('/')) url += '/';
+    return url;
+  }
+
+  function addItem(url, name){
+    const item = document.createElement('div');
+    item.className = 'item';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const title = document.createElement('b');
+    title.textContent = name || url;
+    const small = document.createElement('div');
+    small.style.fontSize='13px';
+    small.style.color='#555';
+    small.textContent = url;
+    meta.appendChild(title);
+    meta.appendChild(small);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const openBtn = document.createElement('button');
+    openBtn.textContent = 'Open';
+    openBtn.onclick = ()=> openViewer(url, name || url);
+    const dl = document.createElement('a');
+    dl.href = url;
+    dl.target = '_blank';
+    dl.rel = 'noopener';
+    dl.textContent = 'Download';
+    dl.style.cssText = 'display:inline-block;padding:8px 10px;border-radius:8px;background:#10b981;color:#fff;text-decoration:none;font-weight:700';
+    actions.appendChild(openBtn);
+    actions.appendChild(dl);
+
+    item.appendChild(meta);
+    item.appendChild(actions);
+    listDiv.appendChild(item);
+  }
+
+  function clearList(){
+    listDiv.innerHTML = '';
+    viewerWrap.style.display = 'none';
+    pdfFrame.src = '';
+  }
+
+  clearBtn.addEventListener('click', clearList);
+
+  async function fetchHTML(url){
+    try{
+      const res = await fetch(url, {mode:'cors'});
+      // may throw on CORS or 404
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const text = await res.text();
+      return text;
+    }catch(err){
+      throw err;
+    }
+  }
+
+  function parseLinksFromHTML(html, baseUrl=''){
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const anchors = Array.from(doc.querySelectorAll('a'));
+    const pdfs = [];
+    anchors.forEach(a=>{
+      const href = a.getAttribute('href') || '';
+      if(!href) return;
+      const low = href.toLowerCase();
+      if(low.endsWith('.pdf')){
+        let url;
+        try{
+          url = new URL(href, baseUrl || location.href).href;
+        }catch(e){
+          url = (baseUrl || '') + href;
+        }
+        pdfs.push({url, name: a.textContent.trim() || url.split('/').pop()});
+      }
+    });
+    return pdfs;
+  }
+
+  async function loadFolder(){
+    clearList();
+    const base = normalizeBase(baseInput.value);
+    if(!base){
+      alert('Please enter a base folder URL (e.g. https://your-site.netlify.app/pdfs/) or paste PDF links in the textarea.');
+      return;
+    }
+    // Try fetch the folder URL (works when server returns HTML directory listing)
+    try{
+      const html = await fetchHTML(base);
+      const pdfs = parseLinksFromHTML(html, base);
+      if(pdfs.length === 0){
+        // Also try scanning the page at the parent location
+        const alt = await fetchHTML(base + '?index=1').catch(()=>null);
+        if(alt){
+          const pdfs2 = parseLinksFromHTML(alt, base);
+          if(pdfs2.length) pdfs.push(...pdfs2);
+        }
+      }
+      if(pdfs.length === 0){
+        alert('No PDF links found in that folder listing. If your host does not expose a folder index, use the textarea to paste filenames or raw URLs (one per line).');
+        return;
+      }
+      pdfs.forEach(p=>addItem(p.url, p.name));
+    }catch(err){
+      console.warn(err);
+      alert('Failed to fetch folder. This can be due to CORS or folder-listing disabled by the host. Use the textarea to paste PDF URLs or filenames and the base folder URL.');
+    }
+  }
+
+  loadFolderBtn.addEventListener('click', loadFolder);
+
+  scanBtn.addEventListener('click', async ()=>{
+    // Try to fetch the base page and parse any links
+    clearList();
+    const base = normalizeBase(baseInput.value) || location.href;
+    try{
+      const html = await fetchHTML(base);
+      const found = parseLinksFromHTML(html, base);
+      if(found.length===0){ alert('No PDF links found on that page.'); return; }
+      found.forEach(p=>addItem(p.url, p.name));
+    }catch(e){
+      alert('Failed to fetch the page. Possibly CORS or network error.');
+    }
+  });
+
+  useNamesBtn.addEventListener('click', ()=>{
+    clearList();
+    const raw = paste.value.trim();
+    if(!raw){ alert('Paste PDF filenames or URLs in the textarea first.'); return; }
+    const lines = raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const base = normalizeBase(baseInput.value);
+    lines.forEach(l=>{
+      if(l.match(/^https?:\/\//i)){
+        addItem(l, l.split('/').pop());
+      } else {
+        // treat as filename
+        if(!base){
+          alert('You provided filenames but no base URL. Enter base folder URL or paste full URLs.');
+          return;
+        }
+        const full = base + l.replace(/^\/+/,'');
+        addItem(full, l);
+      }
+    });
+  });
+
+  autoDetectBtn.addEventListener('click', ()=>{
+    // If user pasted HTML (e.g. a GitHub repo page), try to extract links
+    const text = paste.value;
+    if(!text) return alert('Paste HTML or URLs into the textarea first.');
+    const found = parseLinksFromHTML(text, baseInput.value || '');
+    if(found.length===0) return alert('No PDF links detected in pasted content.');
+    clearList();
+    found.forEach(p=>addItem(p.url, p.name));
+  });
+
+  function openViewer(url, title){
+    viewerWrap.style.display = 'block';
+    viewerTitle.textContent = title || url.split('/').pop();
+    // Use direct PDF URL in iframe
+    pdfFrame.src = url;
+    viewerDownload.href = url;
+    viewerDownload.setAttribute('target','_blank');
+    // scroll to viewer
+    setTimeout(()=> viewerWrap.scrollIntoView({behavior:'smooth'}),120);
+  }
+
+  closeViewer.addEventListener('click', ()=> {
+    viewerWrap.style.display = 'none';
+    pdfFrame.src = '';
+  });
+
+  // Small convenience: if the page is in a folder, try to auto-load files by reading relative index
+  window.addEventListener('load', ()=> {
+    // if this file is placed inside a pdf folder, auto-fill base
+    const p = location.pathname;
+    // Heuristic: if path contains /pdf or /pdfs/ then prefill
+    if(p.toLowerCase().includes('/pdf') || p.toLowerCase().includes('/pdfs')){
+      const guess = location.origin + location.pathname.replace(/index\.html$/i,'');
+      baseInput.value = guess;
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
