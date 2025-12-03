@@ -1,0 +1,127 @@
+<!-- Save as make-embed.html and open in browser -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PDF Pages URL & Embed Generator</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#f8fafc;color:#0f172a}
+  .card{max-width:980px;margin:0 auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+  label{font-weight:700;display:block;margin-top:12px}
+  input, textarea{width:100%;padding:10px;border:1px solid #e6e9ef;border-radius:8px;margin-top:6px;font-size:14px}
+  button{margin-top:10px;padding:10px 12px;border-radius:8px;border:0;background:#0f172a;color:#fff;cursor:pointer}
+  .row{display:flex;gap:10px;margin-top:10px}
+  .small{font-size:13px;color:#475569;margin-top:8px}
+  .result{margin-top:18px;border-top:1px dashed #e6edf3;padding-top:12px}
+  .item{padding:8px;border-radius:8px;border:1px solid #eef2f7;margin-bottom:8px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+  .meta{max-width:60%}
+  .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .actions{display:flex;gap:8px}
+  .code{font-family:monospace;background:#f1f5f9;padding:8px;border-radius:6px;overflow:auto}
+  .copy{padding:8px 10px;background:#0ea5a4;color:#fff;border-radius:6px;border:0;cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>PDF GitHub-Pages URL & Embed Generator</h2>
+    <div class="small">Step A: Enter your GitHub Pages base URL (example: <code>https://thupakulabp.github.io/Flip-Master-3D/</code>). Step B: Paste relative PDF file paths (one per line) like <code>PDF/6thclass/physics/1st lesson.pdf</code>.</div>
+
+    <label>GitHub Pages Base URL</label>
+    <input id="base" placeholder="https://USERNAME.github.io/REPO/" />
+
+    <label>Relative PDF Paths (one per line)</label>
+    <textarea id="paths" rows="8" placeholder="PDF/6thclass/physics/1st lesson.pdf
+PDF/9thclass/physics/5th lesson.pdf"></textarea>
+
+    <div class="row">
+      <button id="generate">Generate URLs & Embed Code</button>
+      <button id="clear" style="background:#64748b">Clear</button>
+    </div>
+
+    <div id="out" class="result"></div>
+  </div>
+
+<script>
+(function(){
+  const baseEl = document.getElementById('base');
+  const pathsEl = document.getElementById('paths');
+  const out = document.getElementById('out');
+  const gen = document.getElementById('generate');
+  const clear = document.getElementById('clear');
+
+  function normalizeBase(u){
+    if(!u) return '';
+    u = u.trim();
+    // ensure trailing slash
+    if(!u.endsWith('/')) u += '/';
+    return u;
+  }
+
+  function urlEncodePath(p){
+    // encode each segment to preserve slashes but encode spaces & special chars
+    return p.split('/').map(seg => encodeURIComponent(seg)).join('/');
+  }
+
+  function makeEmbedIframe(url){
+    // Basic iframe style; many flipbook widgets accept the PDF url instead
+    return '<iframe src="'+url+'" width="100%" height="640" frameborder="0"></iframe>';
+  }
+
+  function makeHtmlBlock(url, label){
+    const title = label || url.split('/').pop();
+    const iframe = makeEmbedIframe(url);
+    return `
+      <div class="item">
+        <div class="meta">
+          <b title="${title}">${title}</b>
+          <div style="font-size:13px;color:#475569">${url}</div>
+        </div>
+        <div class="actions">
+          <a href="${url}" target="_blank" style="text-decoration:none;padding:8px 10px;background:#0f172a;color:#fff;border-radius:6px">Open</a>
+          <button class="copy" data-embed="${encodeURIComponent(iframe)}">Copy embed</button>
+        </div>
+      </div>
+      <div class="code">${iframe}</div>
+    `;
+  }
+
+  gen.addEventListener('click', ()=>{
+    const base = normalizeBase(baseEl.value);
+    const raw = pathsEl.value.trim();
+    if(!base){
+      alert('Enter your GitHub Pages base URL (example: https://thupakulabp.github.io/Flip-Master-3D/ )');
+      return;
+    }
+    if(!raw){ alert('Paste at least one relative PDF path.'); return; }
+    out.innerHTML = '<div style="font-size:13px;color:#475569">Generating...<\/div>';
+    const lines = raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    let html = '';
+    lines.forEach(l=>{
+      let finalUrl;
+      if(/^https?:\/\//i.test(l)){
+        finalUrl = l; // full URL already
+      } else {
+        const enc = urlEncodePath(l.replace(/^\/+/,''));
+        finalUrl = base + enc;
+      }
+      html += makeHtmlBlock(finalUrl, l);
+    });
+    out.innerHTML = html + '<div style="font-size:13px;color:#475569;margin-top:8px">Click <b>Copy embed</b> to copy iframe HTML to clipboard and paste into your Blogger post (HTML view) or any flipbook tool that accepts a PDF URL.</div>';
+    // attach copy handlers
+    document.querySelectorAll('.copy').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        const embed = decodeURIComponent(btn.getAttribute('data-embed'));
+        navigator.clipboard.writeText(embed).then(()=>{
+          btn.textContent = 'Copied!';
+          setTimeout(()=>btn.textContent='Copy embed',1200);
+        }).catch(()=> alert('Clipboard failed. Select and copy manually:\\n\\n'+embed));
+      });
+    });
+  });
+
+  clear.addEventListener('click', ()=> {baseEl.value=''; pathsEl.value=''; out.innerHTML='';});
+})();
+</script>
+</body>
+</html>
