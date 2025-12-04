@@ -2,8 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>FlipMaster Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
+    <title>FlipMaster Mobile Pro</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,122 +16,116 @@
     <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
     <style>
-        /* --- THEME VARIABLES --- */
+        /* --- THEME SYSTEM --- */
         :root[data-theme="dark"] {
             --bg-main: #0f172a;
             --bg-gradient: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-            --bg-panel: rgba(30, 41, 59, 0.95);
+            --bg-panel: rgba(15, 23, 42, 0.95);
             --text-main: #f1f5f9;
             --text-sub: #94a3b8;
             --accent: #38bdf8;
-            --border: rgba(148, 163, 184, 0.2);
-            --shadow: rgba(0,0,0,0.6);
+            --border: rgba(255, 255, 255, 0.1);
         }
         :root[data-theme="day"] {
-            --bg-main: #f8fafc;
-            --bg-gradient: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+            --bg-main: #f0f2f5;
+            --bg-gradient: radial-gradient(circle at center, #ffffff 0%, #e2e8f0 100%);
             --bg-panel: rgba(255, 255, 255, 0.95);
             --text-main: #0f172a;
             --text-sub: #64748b;
             --accent: #0284c7;
-            --border: rgba(0,0,0,0.1);
-            --shadow: rgba(0,0,0,0.15);
+            --border: rgba(0, 0, 0, 0.1);
         }
-        :root[data-theme="dusty"] {
-            --bg-main: #e6dac3;
-            --bg-gradient: radial-gradient(circle at center, #f5eadd 0%, #e6dac3 100%);
-            --bg-panel: rgba(230, 218, 195, 0.95);
-            --text-main: #433422;
-            --text-sub: #786550;
-            --accent: #a0522d;
-            --border: rgba(120, 101, 80, 0.3);
-            --shadow: rgba(67, 52, 34, 0.25);
-        }
-
-        /* MOBILE BASICS */
-        html, body {
-            height: 100%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            /* Prevent bounce scrolling on mobile */
-            overscroll-behavior: none; 
-        }
-
+        
+        /* CORE LAYOUT - Uses DVH for Mobile Browsers */
         body {
             background: var(--bg-gradient);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            overflow: hidden; /* We manage scroll inside the app */
-            transition: color 0.4s ease;
+            height: 100dvh; /* Dynamic Viewport Height fixes URL bar issue */
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent body scroll, we handle it internally */
+            display: flex;
+            flex-direction: column;
+            touch-action: none; /* Disable native browser gestures to handle custom pinch */
         }
 
+        /* Glassmorphism Panels */
         .glass-panel {
             background-color: var(--bg-panel);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid var(--border);
-            transition: all 0.3s ease;
         }
 
-        /* Book wrapper should allow gestures */
-        .book-wrapper { 
-            box-shadow: 0 10px 30px -10px var(--shadow); 
-            touch-action: pan-x pan-y pinch-zoom;
-        }
-
-        .page-content {
-            background-color: white;
+        /* Book Wrapper & Pinch Zoom Layer */
+        #main-stage {
+            flex: 1;
+            position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            width: 100%;
+            height: 100%;
         }
 
-        /* Mobile specific scrollbar */
-        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+        #zoom-layer {
+            transition: transform 0.1s ease-out; /* Smooth zoom */
+            transform-origin: center center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
 
+        .book-shadow {
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+
+        .page-content {
+            background-color: white;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar Styling */
+        .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modal-bg { background-color: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
+
+        /* Loader */
         .loader { border-top-color: var(--accent); animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .modal-bg { background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
-        
-        /* Mobile Input Improvements */
-        input, select, button { font-size: 16px !important; } /* Prevents iOS auto-zoom on focus */
     </style>
 </head>
-<body class="h-[100dvh] w-screen flex flex-col relative">
+<body>
 
-    <header class="h-14 flex items-center justify-between px-3 z-40 relative glass-panel border-b-0 border-b border-[var(--border)] shadow-sm shrink-0">
+    <header class="h-14 shrink-0 flex items-center justify-between px-3 z-50 glass-panel border-b-0 border-b border-[var(--border)]">
         <div class="flex items-center gap-3">
-            <button id="toggleSidebar" class="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--text-sub)] hover:text-[var(--text-main)] transition">
+            <button id="toggleSidebar" class="p-2 text-[var(--text-sub)] hover:text-[var(--text-main)]">
                 <i class="fa-solid fa-bars fa-lg"></i>
             </button>
             <div class="flex items-center gap-2 select-none">
-                <div class="w-7 h-7 rounded bg-[var(--accent)] flex items-center justify-center text-white shadow-lg">
-                    <i class="fa-solid fa-book-open text-xs"></i>
-                </div>
-                <h1 class="font-bold text-base tracking-wide hidden sm:block">Flip<span style="color: var(--accent)">Master</span></h1>
+                <i class="fa-solid fa-book-open text-[var(--accent)]"></i>
+                <h1 class="font-bold text-sm sm:text-base hidden sm:block">FlipMaster</h1>
             </div>
         </div>
 
         <div class="flex items-center gap-2">
-            <button onclick="cycleTheme()" id="themeBtn" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)]">
+            <button onclick="toggleTheme()" class="p-2 rounded-full border border-[var(--border)] bg-[var(--bg-main)]/50 text-xs">
                 <i class="fa-solid fa-circle-half-stroke"></i>
             </button>
-
-            <button onclick="toggleUrlModal(true)" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)]" title="Load URL">
-                <i class="fa-solid fa-link"></i>
-            </button>
             
-            <button id="btnShare" class="p-2 rounded-lg bg-green-600/20 text-green-400 border border-green-600/30 hover:bg-green-600 hover:text-white transition">
-                <i class="fa-solid fa-share-nodes"></i>
+            <button onclick="toggleUrlModal(true)" class="p-2 rounded-lg bg-[var(--bg-main)]/50 border border-[var(--border)] text-xs font-bold flex items-center gap-1">
+                <i class="fa-solid fa-link"></i> <span class="hidden sm:inline">URL</span>
             </button>
 
-            <label class="cursor-pointer bg-[var(--accent)] hover:brightness-110 text-white p-2 sm:px-4 sm:py-2 rounded-lg font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">
+            <label class="cursor-pointer bg-[var(--accent)] text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
-                <span class="hidden sm:inline text-sm">Upload</span>
+                <span>Upload</span>
                 <input type="file" id="inpFile" accept="application/pdf" class="hidden">
             </label>
         </div>
@@ -139,170 +133,136 @@
 
     <aside id="sidebar" class="sidebar fixed top-14 left-0 h-[calc(100dvh-3.5rem)] w-64 glass-panel border-r border-[var(--border)] transform -translate-x-full z-50 flex flex-col">
         <div class="p-4 border-b border-[var(--border)]">
-            <h2 class="font-bold mb-3 text-[var(--text-main)] text-xs uppercase tracking-wider opacity-80">Chapters</h2>
-            <div class="flex rounded-lg overflow-hidden border border-[var(--border)] focus-within:border-[var(--accent)] transition">
-                <input type="number" id="jumpInput" placeholder="Page" class="w-full bg-[var(--bg-main)] text-[var(--text-main)] px-3 py-2 outline-none text-sm">
-                <button id="jumpBtn" class="bg-[var(--bg-panel)] hover:bg-[var(--accent)] hover:text-white px-3 py-2 text-xs font-bold border-l border-[var(--border)]">GO</button>
+            <h2 class="font-bold text-xs uppercase text-[var(--text-sub)] mb-2">Jump to Page</h2>
+            <div class="flex gap-2">
+                <input type="number" id="jumpInput" placeholder="#" class="w-full bg-[var(--bg-main)] text-[var(--text-main)] px-2 py-1 rounded text-sm outline-none border border-[var(--border)]">
+                <button id="jumpBtn" class="bg-[var(--accent)] text-white px-3 rounded text-xs font-bold">GO</button>
             </div>
         </div>
-        <div id="toc-container" class="flex-1 overflow-y-auto p-2 sidebar-scroll"></div>
+        <div id="toc-container" class="flex-1 overflow-y-auto p-2">
+            <div class="text-center mt-10 text-[var(--text-sub)] text-xs">No chapters available</div>
+        </div>
     </aside>
     <div id="backdrop" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm"></div>
 
-    <main class="flex-1 relative flex items-center justify-center overflow-hidden w-full perspective-1000 h-full">
-        
-        <div class="absolute top-2 right-2 z-30 opacity-50 hover:opacity-100 transition">
-             <div class="bg-[var(--bg-panel)] text-[var(--text-sub)] text-[10px] px-2 py-1 rounded border border-[var(--border)] pointer-events-none">
-                <i class="fa-solid fa-rotate"></i> Auto-Fit Active
+    <main id="main-stage">
+        <div id="zoom-layer">
+            
+            <div id="intro-state" class="text-center p-6 max-w-sm">
+                <div class="mb-4 inline-block p-4 rounded-full bg-[var(--bg-panel)] border border-[var(--border)] shadow-xl">
+                    <i class="fa-solid fa-book-reader text-4xl text-[var(--accent)]"></i>
+                </div>
+                <h2 class="text-xl font-bold mb-2">Mobile 3D Reader</h2>
+                <p class="text-[var(--text-sub)] text-xs">
+                    Upload a file or paste a link.<br>
+                    <span class="text-[var(--accent)]">Tip:</span> Rotate phone for 2-page view.<br>
+                    Pinch to zoom enabled.
+                </p>
             </div>
-        </div>
 
-        <div id="intro-state" class="text-center p-6 transition-opacity duration-500 max-w-sm mx-auto">
-            <div class="inline-block p-6 rounded-full bg-[var(--bg-panel)] mb-4 border border-[var(--border)] shadow-2xl">
-                <i class="fa-solid fa-book-open-reader text-5xl" style="color: var(--accent)"></i>
+            <div id="loader" class="hidden flex flex-col items-center">
+                <div class="loader rounded-full border-4 border-t-4 h-10 w-10 mb-2"></div>
+                <span id="loading-text" class="text-xs font-mono uppercase tracking-widest">Loading...</span>
             </div>
-            <h2 class="text-2xl font-bold mb-2">FlipMaster</h2>
-            <p class="text-[var(--text-sub)] text-sm">
-                Optimized for Mobile Learning.<br>Upload or Paste Link.
-            </p>
-        </div>
 
-        <div id="loader" class="hidden absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center">
-            <div class="loader rounded-full border-4 border-t-4 h-10 w-10 mb-4"></div>
-            <p id="loading-text" class="text-white font-mono animate-pulse text-xs tracking-widest uppercase">Loading...</p>
-        </div>
+            <div id="book" class="hidden relative book-shadow"></div>
 
-        <div id="zoom-wrapper" class="transition-transform duration-200 ease-out origin-center w-full h-full flex items-center justify-center">
-            <div id="book-container" class="hidden relative book-wrapper"></div>
         </div>
     </main>
 
-    <div id="controls" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-4 py-2 flex items-center gap-3 shadow-2xl z-50 border border-[var(--border)] w-auto max-w-[90vw]">
-        <button id="prevBtn" class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition"><i class="fa-solid fa-chevron-left"></i></button>
+    <div id="controls" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-5 py-2 flex items-center gap-4 shadow-2xl z-50 border border-[var(--border)] w-auto max-w-[90vw]">
+        <button id="prevBtn" class="text-[var(--text-main)] hover:text-[var(--accent)] transition text-lg"><i class="fa-solid fa-circle-chevron-left"></i></button>
         
-        <span class="font-mono text-xs text-[var(--text-main)] font-bold select-none min-w-[50px] text-center">
-            <span id="currentPage">0</span>/<span id="totalPages">0</span>
+        <span class="font-mono text-xs font-bold min-w-[50px] text-center">
+            <span id="currentPage">0</span> / <span id="totalPages">0</span>
         </span>
         
-        <button id="nextBtn" class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition"><i class="fa-solid fa-chevron-right"></i></button>
+        <button id="nextBtn" class="text-[var(--text-main)] hover:text-[var(--accent)] transition text-lg"><i class="fa-solid fa-circle-chevron-right"></i></button>
         
-        <div class="w-px h-6 bg-[var(--border)]"></div>
+        <div class="w-px h-5 bg-[var(--border)]"></div>
         
-        <button id="zoomReset" class="text-[var(--text-sub)] hover:text-[var(--accent)] text-xs" title="Reset View"><i class="fa-solid fa-compress"></i></button>
+        <button id="resetZoomBtn" class="text-[var(--text-sub)] hover:text-[var(--accent)] text-sm"><i class="fa-solid fa-compress"></i></button>
     </div>
 
     <div id="urlModal" class="fixed inset-0 z-[100] modal-bg hidden flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-2xl shadow-2xl p-5">
-            <h3 class="font-bold text-lg mb-3 text-[var(--text-main)]">Load PDF URL</h3>
-            <input type="text" id="urlInput" placeholder="https://..." class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded-lg p-3 outline-none text-sm mb-4">
+        <div class="glass-panel w-full max-w-sm rounded-xl p-5 shadow-2xl">
+            <h3 class="font-bold mb-3">Load PDF URL</h3>
+            <input type="text" id="urlInput" placeholder="https://..." class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-sm mb-4 outline-none">
             <div class="flex justify-end gap-2">
-                <button onclick="toggleUrlModal(false)" class="text-[var(--text-sub)] px-3 py-2 text-sm">Cancel</button>
-                <button id="btnFetchUrl" class="bg-[var(--accent)] text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg">Open</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="shareModal" class="fixed inset-0 z-[100] modal-bg hidden flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-lg rounded-2xl shadow-2xl p-5 flex flex-col max-h-[85vh]">
-            <div class="flex justify-between items-center mb-4 border-b border-[var(--border)] pb-2">
-                <h3 class="font-bold text-lg text-[var(--text-main)]">Share Material</h3>
-                <button onclick="toggleShareModal(false)" class="text-[var(--text-sub)]"><i class="fa-solid fa-xmark fa-lg"></i></button>
-            </div>
-            
-            <div class="overflow-y-auto space-y-4">
-                <div id="shareUrlMode" class="hidden space-y-4">
-                    <p class="text-[var(--text-sub)] text-xs">Share this link with students. It opens directly to this PDF.</p>
-                    <div class="flex gap-2">
-                        <input type="text" id="shareDirectLink" readonly class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-xs font-mono">
-                        <button onclick="copyToClipboard('shareDirectLink')" class="bg-[var(--accent)] text-white px-3 rounded text-xs">Copy</button>
-                    </div>
-                    
-                    <div>
-                        <p class="text-[var(--text-sub)] text-xs font-bold mb-1">Embed Code (Website)</p>
-                        <textarea id="shareEmbedCode" readonly class="w-full h-20 bg-[var(--bg-main)] text-green-400 p-2 rounded text-xs font-mono border border-[var(--border)] resize-none"></textarea>
-                    </div>
-                </div>
-
-                <div id="shareFileMode" class="hidden">
-                    <div class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg text-yellow-400 text-xs mb-3">
-                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> Local File
-                    </div>
-                    <p class="text-[var(--text-sub)] text-sm mb-3">To share this file online, upload it to a cloud drive (Google Drive, Dropbox) first, then use the "Load URL" feature.</p>
-                    <button onclick="downloadStandalone()" class="w-full bg-[var(--accent)] text-white py-2 rounded-lg text-sm font-bold shadow-lg">Download Offline HTML</button>
-                </div>
+                <button onclick="toggleUrlModal(false)" class="px-3 py-1 text-xs text-[var(--text-sub)]">Cancel</button>
+                <button id="btnFetchUrl" class="bg-[var(--accent)] text-white px-4 py-2 rounded text-xs font-bold">Load</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- MOBILE CONFIGURATION ---
+        // --- STATE & CONFIG ---
         const state = {
-            pdfDoc: null,
-            pageFlip: null,
-            fileBase64: null,
-            currentUrl: null,
-            loadType: null,
-            scale: 1.0, // Initial viewport scale
-            isSidebarOpen: false
+            pdf: null,
+            flipbook: null,
+            zoom: 1,
+            isMobile: window.innerWidth < 768,
+            currentScale: 1.0,
+            pinchStartDist: 0
         };
 
-        const themes = ['dark', 'day', 'dusty'];
-        let currentThemeIdx = 0;
-
         const el = (id) => document.getElementById(id);
-        function setTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }
-        function cycleTheme() {
-            currentThemeIdx = (currentThemeIdx + 1) % themes.length;
-            setTheme(themes[currentThemeIdx]);
-        }
-
-        // --- MOBILE OPTIMIZED HELPERS ---
-        function isMobile() { return window.innerWidth < 768; }
         
-        function getOptimalBookDimensions() {
-            // Calculate available space minus headers/margins
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            
-            if (isMobile()) {
-                // Portrait Mobile: Use mostly full width, height adjusted for aspect ratio
-                const isPortrait = h > w;
-                if (isPortrait) {
-                    return { width: w - 20, height: h - 140, mode: 'portrait' };
-                } else {
-                    // Landscape Mobile: Use wider spread
-                    return { width: (w - 40) / 2, height: h - 80, mode: 'landscape' };
-                }
-            } else {
-                // Desktop
-                return { width: 550, height: 750, mode: 'landscape' };
-            }
+        // --- THEME ---
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            document.documentElement.setAttribute('data-theme', current === 'dark' ? 'day' : 'dark');
         }
 
-        // --- INITIALIZATION ---
-        window.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            const pdfUrl = params.get('pdf');
-            if(pdfUrl) {
-                el('urlInput').value = pdfUrl;
-                el('btnFetchUrl').click();
-                // Minimal UI for embed
-                document.querySelector('header').style.display = 'none';
-                el('sidebar').style.top = '0';
-                el('sidebar').style.height = '100dvh';
+        // --- TOUCH / PINCH ZOOM ENGINE ---
+        const zoomLayer = el('zoom-layer');
+        const mainStage = el('main-stage');
+
+        mainStage.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                state.pinchStartDist = getPinchDist(e);
             }
         });
 
-        // --- FILE & URL LOADING ---
+        mainStage.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault(); // Prevent native browser zoom
+                const dist = getPinchDist(e);
+                const delta = dist / state.pinchStartDist;
+                // Limit zoom levels
+                const newScale = Math.min(Math.max(state.currentScale * delta, 0.8), 3.5);
+                
+                zoomLayer.style.transform = `scale(${newScale})`;
+            }
+        });
+
+        mainStage.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                // Save the new scale roughly (simplification for UX)
+                const transform = window.getComputedStyle(zoomLayer).transform;
+                if (transform !== 'none') {
+                    const matrix = new DOMMatrix(transform);
+                    state.currentScale = matrix.a;
+                }
+            }
+        });
+
+        function getPinchDist(e) {
+            return Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+        }
+
+        el('resetZoomBtn').onclick = () => {
+            state.currentScale = 1.0;
+            zoomLayer.style.transform = `scale(1)`;
+        };
+
+        // --- PDF LOADING ---
         el('inpFile').addEventListener('change', async (e) => {
             if(e.target.files[0]) {
-                state.loadType = 'file';
-                state.currentUrl = null;
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = () => { state.fileBase64 = reader.result; };
-                reader.readAsDataURL(file);
-                const buffer = await file.arrayBuffer();
+                const buffer = await e.target.files[0].arrayBuffer();
                 loadDocument(new Uint8Array(buffer));
             }
         });
@@ -311,64 +271,64 @@
             const url = el('urlInput').value.trim();
             if(!url) return;
             toggleUrlModal(false);
-            toggleLoader(true, "Downloading...");
+            showLoader(true, "Downloading...");
             try {
                 const res = await fetch(url);
-                if(!res.ok) throw new Error("CORS Error");
-                const blob = await res.blob();
-                state.loadType = 'url';
-                state.currentUrl = url;
-                const buffer = await blob.arrayBuffer();
+                if(!res.ok) throw new Error("CORS/Network");
+                const buffer = await res.arrayBuffer();
                 loadDocument(new Uint8Array(buffer));
             } catch(e) {
-                toggleLoader(false);
-                alert("Could not load URL. \n\nTip: The server must allow CORS. Try a GitHub Raw link or direct file link.");
+                alert("URL Failed. Try downloading the file first.");
+                showLoader(false);
             }
         });
 
-        // --- CORE LOGIC ---
         async function loadDocument(data) {
-            toggleLoader(true, "Processing...");
+            showLoader(true, "Processing PDF...");
             el('intro-state').classList.add('hidden');
-            if(state.pageFlip) { state.pageFlip.destroy(); state.pageFlip = null; }
-            el('book-container').innerHTML = '<div id="book"></div>';
+            
+            // Cleanup previous
+            if(state.flipbook) { state.flipbook.destroy(); state.flipbook = null; }
+            el('book').innerHTML = '';
+            el('book').classList.remove('hidden');
 
             try {
-                state.pdfDoc = await pdfjsLib.getDocument(data).promise;
-                el('totalPages').textContent = state.pdfDoc.numPages;
+                state.pdf = await pdfjsLib.getDocument(data).promise;
+                el('totalPages').textContent = state.pdf.numPages;
 
-                await renderPages(state.pdfDoc);
-                initFlipbook();
-                await generateTOC(state.pdfDoc);
-
-                el('book-container').classList.remove('hidden');
+                await renderPages(state.pdf);
+                initBook();
+                
                 el('controls').classList.remove('hidden');
-            } catch(err) {
-                alert("Error: " + err.message);
+            } catch(e) {
+                alert("Error: " + e.message);
                 el('intro-state').classList.remove('hidden');
             } finally {
-                toggleLoader(false);
+                showLoader(false);
             }
         }
 
         async function renderPages(pdf) {
-            const bookDiv = document.getElementById('book');
+            const bookDiv = el('book');
             const total = pdf.numPages;
-            // Mobile Optimization: Lower scale to prevent crashing on low-end phones
-            const renderScale = isMobile() ? 1.0 : 1.5; 
+            
+            // Optimization: Reduce resolution on mobile to prevent crash
+            const scale = window.innerWidth < 600 ? 1.0 : 1.5;
 
             for(let i = 1; i <= total; i++) {
                 el('loading-text').textContent = `Page ${i}/${total}`;
+                
                 const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: renderScale });
+                const viewport = page.getViewport({ scale: scale });
                 
                 const div = document.createElement('div');
-                div.className = "page-content shadow-sm bg-white"; 
+                div.className = "page-content"; // library needs this
+                div.style.backgroundColor = "white"; // Ensure white background
                 
                 const canvas = document.createElement('canvas');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
-                // CSS ensures it fits container, canvas holds high-res data
+                // Fit canvas to div
                 canvas.style.cssText = "width: 100%; height: 100%; object-fit: contain;";
                 
                 const ctx = canvas.getContext('2d');
@@ -376,174 +336,100 @@
                 
                 div.appendChild(canvas);
                 bookDiv.appendChild(div);
-                
-                // Allow UI to breathe
+
+                // Breathe
                 if(i % 5 === 0) await new Promise(r => setTimeout(r, 0));
             }
         }
 
-        function initFlipbook() {
-            const dims = getOptimalBookDimensions();
-            const bookElement = document.getElementById('book');
+        function initBook() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
             
-            // Check orientation for Mobile config
-            const mobileSettings = isMobile() ? {
-                size: 'fixed', // Fixed works better for resizing on mobile
-                usePortrait: true, // Allow single page mode
-                mobileScrollSupport: true, // Handle touch properly
-                startPage: 0
-            } : {
-                size: 'fixed',
-                usePortrait: false
-            };
+            // Smart Dimension Calculation
+            // We leave space for header (56px) and controls
+            const isPortrait = h > w;
+            
+            // Config based on orientation
+            let width, height, mode;
 
-            state.pageFlip = new St.PageFlip(bookElement, {
-                width: dims.width,
-                height: dims.height,
-                maxWidth: 2000,
-                maxHeight: 2000,
-                maxShadowOpacity: 0.5,
+            if (isPortrait) {
+                // Portrait Mobile: Single Page, maximize width
+                width = w - 20; // 10px margin
+                height = h - 140; // Space for header/footer
+                mode = 'portrait'; // Forces single page
+            } else {
+                // Landscape: Double spread
+                width = (w - 60) / 2;
+                height = h - 100;
+                mode = 'landscape'; // Forces double page
+            }
+
+            state.flipbook = new St.PageFlip(el('book'), {
+                width: width,
+                height: height,
+                size: 'fixed', // Fixed size prevents layout jumping
+                // If portrait, show 1 page. If landscape, show 2.
+                // Note: PageFlip library handles this if we set dimensions right,
+                // but we can enforce:
                 showCover: true,
-                ...mobileSettings
+                mobileScrollSupport: false, // We handle zoom ourselves
+                startPage: 0
             });
 
-            state.pageFlip.loadFromHTML(document.querySelectorAll(".page-content"));
-            
-            state.pageFlip.on('flip', (e) => {
+            state.flipbook.loadFromHTML(document.querySelectorAll(".page-content"));
+
+            state.flipbook.on('flip', (e) => {
                 el('currentPage').textContent = e.data + 1;
             });
 
-            // Force Single Page on Portrait Mobile
-            if (isMobile() && window.innerHeight > window.innerWidth) {
-                // The library handles this via usePortrait: true usually, 
-                // but we ensure the container width is set for single page.
-                // No extra action needed if width passed to constructor is correct.
-            }
+            // Button Bindings
+            el('prevBtn').onclick = () => state.flipbook.flipPrev();
+            el('nextBtn').onclick = () => state.flipbook.flipNext();
         }
 
-        // --- ROBUST RESIZE / ORIENTATION CHANGE ---
-        let resizeTimeout;
+        // --- RESIZE / ROTATION HANDLER ---
+        let resizeTimer;
         window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                if(!state.pdfDoc) return;
-                // Reload book logic to fit new screen size
-                const currentPage = state.pageFlip ? state.pageFlip.getCurrentPageIndex() : 0;
-                if(state.pageFlip) state.pageFlip.destroy();
-                el('book-container').innerHTML = '<div id="book"></div>';
-                
-                // Fast Re-init (using existing rendered canvases would be faster but complex)
-                // For stability, we re-render or re-append. 
-                // Re-appending existing DOM nodes is safer:
-                // Note: In a real app we would cache DOM nodes. Here we re-render for simplicity.
-                toggleLoader(true, "Rotating...");
-                setTimeout(async () => {
-                   await renderPages(state.pdfDoc);
-                   initFlipbook();
-                   try { state.pageFlip.flip(currentPage, false); } catch(e){}
-                   toggleLoader(false);
-                }, 50);
-            }, 300); // 300ms delay to wait for rotation to finish
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if(state.pdf) {
+                    // Full reload needed to adjust single/double page mode correctly
+                    showLoader(true, "Adjusting Layout...");
+                    if(state.flipbook) state.flipbook.destroy();
+                    el('book').innerHTML = ''; 
+                    
+                    // Re-render (Fastest way to ensure clean layout)
+                    renderPages(state.pdf).then(() => {
+                        initBook();
+                        showLoader(false);
+                    });
+                }
+            }, 500); // Wait for rotation animation to finish
         });
 
-        // --- SHARE LOGIC ---
-        el('btnShare').onclick = () => {
-            if(!state.pdfDoc) { alert("Load PDF first."); return; }
-            toggleShareModal(true);
-            
-            if(state.loadType === 'url') {
-                el('shareUrlMode').classList.remove('hidden');
-                el('shareFileMode').classList.add('hidden');
-                const baseUrl = window.location.href.split('?')[0];
-                const link = `${baseUrl}?pdf=${encodeURIComponent(state.currentUrl)}`;
-                el('shareDirectLink').value = link;
-                el('shareEmbedCode').value = `<iframe src="${link}" width="100%" height="600" style="border:none;" allowfullscreen></iframe>`;
-            } else {
-                el('shareUrlMode').classList.add('hidden');
-                el('shareFileMode').classList.remove('hidden');
-                // Fill standalone download code
-                const currentHTML = document.documentElement.outerHTML;
-                // (Injection logic same as previous version, omitted for brevity but button triggers download)
-                window.standaloneHTML = currentHTML; 
-            }
-        };
-
-        window.downloadStandalone = () => {
-             // Basic injection for offline file
-             const injection = `
-            <script>
-                const autoLoadData = "${state.fileBase64}";
-                function dataURItoUint8Array(dataURI) {
-                    const byteString = atob(dataURI.split(',')[1]);
-                    const ab = new ArrayBuffer(byteString.length);
-                    const ia = new Uint8Array(ab);
-                    for (let i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
-                    return ia;
-                }
-                window.addEventListener('load', () => {
-                    document.getElementById('intro-state').style.display = 'none';
-                    const h = document.querySelector('header'); if(h) h.style.display = 'none';
-                    const pdfData = dataURItoUint8Array(autoLoadData);
-                    loadDocument(pdfData);
-                });
-            <\/script>`;
-            const html = document.documentElement.outerHTML.replace('</body>', injection + '</body>');
-            const blob = new Blob([html], {type: "text/html"});
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "FlipBook-Viewer.html";
-            link.click();
-        }
-
-        // --- UI HELPERS ---
-        function toggleUrlModal(show) { el('urlModal').style.display = show ? 'flex' : 'none'; }
-        function toggleShareModal(show) { el('shareModal').style.display = show ? 'flex' : 'none'; }
-        function toggleLoader(show, text) { 
+        // --- HELPERS ---
+        function showLoader(show, text) {
             const l = el('loader');
             if(show) { l.classList.remove('hidden'); el('loading-text').textContent = text; }
-            else l.classList.add('hidden'); 
-        }
-        function copyToClipboard(id) {
-            el(id).select(); navigator.clipboard.writeText(el(id).value).then(()=>alert("Copied!"));
+            else l.classList.add('hidden');
         }
 
+        function toggleUrlModal(show) { el('urlModal').style.display = show ? 'flex' : 'none'; }
+        
+        // Sidebar Toggles
         el('toggleSidebar').onclick = () => {
-            state.isSidebarOpen = !state.isSidebarOpen;
-            el('sidebar').classList.toggle('-translate-x-full', !state.isSidebarOpen);
-            el('backdrop').classList.toggle('hidden', !state.isSidebarOpen);
+            const sb = el('sidebar');
+            const bd = el('backdrop');
+            sb.classList.toggle('-translate-x-full');
+            bd.classList.toggle('hidden');
         }
         el('backdrop').onclick = el('toggleSidebar').onclick;
-        
-        el('prevBtn').onclick = () => state.pageFlip.flipPrev();
-        el('nextBtn').onclick = () => state.pageFlip.flipNext();
-        el('zoomReset').onclick = () => { state.scale = 1; el('zoom-wrapper').style.transform = `scale(1)`; };
 
-        async function generateTOC(pdf) {
-            const container = el('toc-container');
-            container.innerHTML = "";
-            const outline = await pdf.getOutline();
-            if(!outline) { container.innerHTML = `<div class="text-center mt-5 text-[var(--text-sub)] text-xs">No chapters found.</div>`; return; }
-            const ul = document.createElement('ul');
-            ul.className = "space-y-1";
-            for(const item of outline) {
-                const li = document.createElement('li');
-                const div = document.createElement('div');
-                div.className = "p-2 rounded cursor-pointer text-sm text-[var(--text-sub)] hover:bg-[var(--accent)] hover:text-white truncate";
-                div.textContent = item.title;
-                div.onclick = async () => {
-                    if(item.dest) {
-                        const dest = typeof item.dest === 'string' ? await pdf.getDestination(item.dest) : item.dest;
-                        if(dest) {
-                            const index = await pdf.getPageIndex(dest[0]);
-                            state.pageFlip.flip(index);
-                            if(isMobile()) el('toggleSidebar').click();
-                        }
-                    }
-                };
-                li.appendChild(div);
-                ul.appendChild(li);
-            }
-            container.appendChild(ul);
+        // Jump to Page
+        el('jumpBtn').onclick = () => {
+            const p = parseInt(el('jumpInput').value);
+            if(p > 0 && state.flipbook) state.flipbook.flip(p - 1);
         }
     </script>
 </body>
