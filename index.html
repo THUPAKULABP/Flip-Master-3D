@@ -48,7 +48,7 @@
             --shadow: rgba(67, 52, 34, 0.25);
         }
 
-        /* BASICS */
+        /* MOBILE BASICS */
         html, body {
             height: 100%;
             width: 100%;
@@ -72,6 +72,7 @@
             transition: all 0.3s ease;
         }
 
+        /* Book wrapper interactions */
         .book-wrapper { 
             box-shadow: 0 10px 30px -10px var(--shadow); 
             transition: box-shadow 0.3s ease;
@@ -95,9 +96,9 @@
         .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .modal-bg { background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
         
-        input, select, button { font-size: 16px !important; }
+        input, select, button, textarea { font-size: 16px !important; }
 
-        /* Custom Select Style */
+        /* Custom Select Style for Header */
         .custom-select {
             background-color: var(--bg-main);
             color: var(--text-sub);
@@ -107,7 +108,7 @@
             font-size: 0.75rem !important;
             outline: none;
             cursor: pointer;
-            appearance: none;
+            appearance: none; /* Hide default arrow */
             text-align: center;
         }
         .custom-select:hover { border-color: var(--accent); color: var(--text-main); }
@@ -130,6 +131,7 @@
         </div>
 
         <div class="flex items-center gap-2">
+            
             <div class="relative group" title="Page Layout">
                 <select id="viewModeSelect" onchange="changeViewMode(this.value)" class="custom-select w-20 sm:w-24">
                     <option value="auto">Auto Fit</option>
@@ -154,6 +156,10 @@
                 <i class="fa-solid fa-link"></i>
             </button>
             
+            <button id="btnShare" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)]" title="Share & Embed">
+                <i class="fa-solid fa-share-nodes"></i>
+            </button>
+
             <label class="cursor-pointer bg-[var(--accent)] hover:brightness-110 text-white p-2 sm:px-4 sm:py-2 rounded-lg font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
                 <span class="hidden sm:inline text-sm">Upload</span>
@@ -237,9 +243,9 @@
     </div>
 
     <div id="shareModal" class="fixed inset-0 z-[100] modal-bg hidden flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-lg rounded-2xl shadow-2xl p-5 flex flex-col max-h-[90vh]">
+        <div class="glass-panel w-full max-w-lg rounded-2xl shadow-2xl p-5 flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center mb-4 border-b border-[var(--border)] pb-2">
-                <h3 class="font-bold text-lg text-[var(--text-main)]">Share & Embed</h3>
+                <h3 class="font-bold text-lg text-[var(--text-main)]">Share Material</h3>
                 <button onclick="toggleShareModal(false)" class="text-[var(--text-sub)]"><i class="fa-solid fa-xmark fa-lg"></i></button>
             </div>
             
@@ -247,25 +253,28 @@
                 <div id="shareUrlMode" class="hidden space-y-5">
                     
                     <div>
-                        <p class="font-bold text-sm mb-1 text-[var(--text-main)]">Direct Link</p>
+                        <div class="flex items-center gap-2 mb-2 text-[var(--accent)]">
+                            <i class="fa-solid fa-link"></i>
+                            <span class="font-bold text-sm uppercase tracking-wide">Direct Link</span>
+                        </div>
+                        <p class="text-[var(--text-sub)] text-xs mb-2">Share this link directly with students.</p>
                         <div class="flex gap-2">
-                            <input type="text" id="shareDirectLink" readonly class="w-full bg-[var(--bg-main)] text-[var(--text-sub)] border border-[var(--border)] rounded p-2 text-xs font-mono">
-                            <button onclick="copyToClipboard('shareDirectLink')" class="bg-[var(--accent)] text-white px-3 rounded text-xs font-bold">COPY</button>
+                            <input type="text" id="shareDirectLink" readonly class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-xs font-mono select-all">
+                            <button onclick="copyToClipboard('shareDirectLink')" class="bg-[var(--accent)] text-white px-3 rounded text-xs font-bold hover:brightness-110">Copy</button>
                         </div>
                     </div>
 
+                    <div class="w-full h-px bg-[var(--border)]"></div>
+
                     <div>
-                        <p class="font-bold text-sm mb-1 text-[var(--text-main)] flex items-center gap-2">
-                            <i class="fa-solid fa-code text-[var(--accent)]"></i> Embed Code (Website Integration)
-                        </p>
-                        <p class="text-[var(--text-sub)] text-xs mb-2">Paste this HTML into any website to show the 3D player with all features.</p>
-                        
-                        <div class="relative group">
-                            <textarea id="shareEmbedCode" readonly class="w-full h-24 bg-[var(--bg-main)] text-green-400 p-3 pr-24 rounded-lg text-xs font-mono border border-[var(--border)] resize-none outline-none focus:border-[var(--accent)] transition"></textarea>
-                            
-                            <button onclick="copyToClipboard('shareEmbedCode')" class="absolute top-2 right-2 bg-[var(--accent)] hover:bg-white hover:text-[var(--accent)] text-white px-3 py-1.5 rounded-md text-xs transition font-bold shadow-lg flex items-center gap-1">
-                                <i class="fa-regular fa-copy"></i> COPY HTML
-                            </button>
+                        <div class="flex items-center gap-2 mb-2 text-[var(--accent)]">
+                            <i class="fa-solid fa-code"></i>
+                            <span class="font-bold text-sm uppercase tracking-wide">Embed Code (HTML)</span>
+                        </div>
+                        <p class="text-[var(--text-sub)] text-xs mb-2">Copy this code to add the book to any study website.</p>
+                        <div class="relative">
+                            <textarea id="shareEmbedCode" readonly class="w-full h-24 bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-xs font-mono resize-none select-all"></textarea>
+                            <button onclick="copyToClipboard('shareEmbedCode')" class="absolute top-2 right-2 bg-[var(--accent)] text-white px-3 py-1 rounded text-xs font-bold hover:brightness-110 shadow-lg">Copy Code</button>
                         </div>
                     </div>
                 </div>
@@ -274,11 +283,8 @@
                     <div class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg text-yellow-400 text-xs mb-3">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> Local File Detected
                     </div>
-                    <p class="text-[var(--text-sub)] text-sm mb-3">You opened a file from your computer. To get an Embed Code for others, please upload your PDF to a cloud service (like Dropbox or Google Drive) and use the "Load URL" button.</p>
-                    
-                    <hr class="border-[var(--border)] my-3">
-                    
-                    <p class="text-[var(--text-sub)] text-xs mb-2">Or download this viewer as a single offline file:</p>
+                    <p class="text-[var(--text-sub)] text-sm mb-3">To get an Embed Code or Link, you must load the PDF from a URL first (e.g., GitHub, Dropbox, or your server).</p>
+                    <p class="text-[var(--text-sub)] text-sm mb-3">Currently, you can only download an offline version.</p>
                     <button onclick="downloadStandalone()" class="w-full bg-[var(--accent)] text-white py-2 rounded-lg text-sm font-bold shadow-lg">Download Offline HTML</button>
                 </div>
             </div>
@@ -294,6 +300,7 @@
             currentUrl: null,
             loadType: null,
             isSidebarOpen: false,
+            // Zoom State
             scale: 1.0,
             panX: 0,
             panY: 0,
@@ -302,7 +309,8 @@
             startPanY: 0,
             initialPinchDistance: null,
             initialScale: 1.0,
-            viewMode: 'auto'
+            // New View Mode
+            viewMode: 'auto' // 'auto', 'portrait', 'landscape', 'square'
         };
 
         const themes = ['dark', 'day', 'dusty'];
@@ -315,10 +323,13 @@
             setTheme(themes[currentThemeIdx]);
         }
 
-        // --- FULL SCREEN & VIEW MODES ---
+        // --- NEW FEATURES: FULL SCREEN & VIEW MODES ---
+
         function toggleFullScreen() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(e => console.log("Fullscreen error"));
+                document.documentElement.requestFullscreen().catch(e => {
+                    console.log("Fullscreen not supported or allowed");
+                });
                 el('fsBtn').innerHTML = '<i class="fa-solid fa-compress"></i>';
             } else {
                 if (document.exitFullscreen) {
@@ -331,43 +342,87 @@
         function changeViewMode(mode) {
             state.viewMode = mode;
             el('fit-badge').classList.remove('hidden');
+            
             const labels = { 'auto': 'Auto Fit', 'portrait': 'Portrait', 'landscape': 'Landscape', 'square': 'Square' };
             el('fit-text').textContent = labels[mode];
-            if(state.pdfDoc) window.dispatchEvent(new Event('resize'));
+
+            // Trigger re-render of layout
+            if(state.pdfDoc) {
+                // Manually trigger the resize event logic
+                window.dispatchEvent(new Event('resize'));
+            }
         }
 
         // --- HELPERS ---
         function isMobile() { return window.innerWidth < 768; }
         
         function getOptimalBookDimensions() {
+            // Get available space (subtracting headers/margins)
             const w = window.innerWidth;
             const h = window.innerHeight;
+            
+            // Margins for UI
             const marginX = isMobile() ? 20 : 60;
-            const marginY = isMobile() ? 160 : 120;
+            const marginY = isMobile() ? 160 : 120; // Space for Header + Controls
+
             const maxW = w - marginX;
             const maxH = h - marginY;
+
             let finalW, finalH, finalMode;
 
+            // 1. Calculate based on View Mode
             if (state.viewMode === 'auto') {
                 if (isMobile()) {
-                    if (h > w) { finalW = maxW; finalH = maxH; finalMode = 'portrait'; } 
-                    else { finalW = maxW / 2; finalH = maxH; finalMode = 'landscape'; }
-                } else { finalW = 550; finalH = 750; finalMode = 'landscape'; }
+                    // Mobile Auto: Portrait if vertical screen, Landscape if horizontal
+                    if (h > w) {
+                        finalW = maxW;
+                        finalH = maxH;
+                        finalMode = 'portrait';
+                    } else {
+                        finalW = maxW / 2; // Split for spread
+                        finalH = maxH;
+                        finalMode = 'landscape';
+                    }
+                } else {
+                    // Desktop Auto: Landscape spread
+                    finalW = 550;
+                    finalH = 750;
+                    finalMode = 'landscape';
+                }
             } else if (state.viewMode === 'portrait') {
+                // Force Portrait: Ratio approx 1 : 1.41
                 const ratio = 1.41;
-                finalH = maxH; finalW = finalH / ratio;
-                if (finalW > maxW) { finalW = maxW; finalH = finalW * ratio; }
-                finalMode = 'portrait';
+                // Try fitting by height first
+                finalH = maxH;
+                finalW = finalH / ratio;
+                // If too wide, fit by width
+                if (finalW > maxW) {
+                    finalW = maxW;
+                    finalH = finalW * ratio;
+                }
+                finalMode = 'portrait'; // Single page
             } else if (state.viewMode === 'landscape') {
-                const ratio = 1.41;
-                finalW = isMobile() ? (w - 40) / 2 : 550;
-                finalH = finalW * 1.41;
-                if(finalH > maxH) { finalH = maxH; finalW = finalH / 1.41; }
+                // Force Landscape: Ratio approx 1.41 : 1
+                const ratio = 1.41; // Width is larger
+                
+                finalW = maxW / (isMobile() ? 1 : 2); 
+                if(isMobile()) finalW = (w - 40) / 2; 
+                else finalW = 550;
+
+                finalH = finalW * 1.41; // Standard A4 ratio
+                if(finalH > maxH) {
+                    finalH = maxH;
+                    finalW = finalH / 1.41;
+                }
                 finalMode = 'landscape';
             } else if (state.viewMode === 'square') {
+                // Square 1:1
                 const size = Math.min(maxW, maxH);
-                finalW = size; finalH = size; finalMode = 'portrait';
+                finalW = size;
+                finalH = size;
+                finalMode = 'portrait'; // Treat as single page technically to avoid weird spreads
             }
+
             return { width: finalW, height: finalH, mode: finalMode };
         }
 
@@ -378,15 +433,15 @@
             if(pdfUrl) {
                 el('urlInput').value = pdfUrl;
                 el('btnFetchUrl').click();
-                // Embed mode adjustments
-                document.querySelector('header').style.display = 'none';
-                el('sidebar').style.top = '0';
-                el('sidebar').style.height = '100dvh';
+                
+                // If loaded via embed/share link, clean UI slightly
+                // Optional: remove header if you want pure embed mode
+                // document.querySelector('header').style.display = 'none'; 
             }
             setupTouchGestures();
         });
 
-        // --- LOADING ---
+        // --- FILE & URL LOADING ---
         el('inpFile').addEventListener('change', async (e) => {
             if(e.target.files[0]) {
                 state.loadType = 'file';
@@ -419,7 +474,7 @@
             }
         });
 
-        // --- PDF ENGINE ---
+        // --- CORE PDF LOGIC ---
         async function loadDocument(data) {
             toggleLoader(true, "Processing...");
             el('intro-state').classList.add('hidden');
@@ -446,18 +501,23 @@
             const bookDiv = document.getElementById('book');
             const total = pdf.numPages;
             const renderScale = isMobile() ? 1.5 : 1.5; 
+
             for(let i = 1; i <= total; i++) {
                 el('loading-text').textContent = `Page ${i}/${total}`;
                 const page = await pdf.getPage(i);
                 const viewport = page.getViewport({ scale: renderScale });
+                
                 const div = document.createElement('div');
                 div.className = "page-content shadow-sm bg-white"; 
+                
                 const canvas = document.createElement('canvas');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
                 canvas.style.cssText = "width: 100%; height: 100%; object-fit: contain;";
+                
                 const ctx = canvas.getContext('2d');
                 await page.render({ canvasContext: ctx, viewport }).promise;
+                
                 div.appendChild(canvas);
                 bookDiv.appendChild(div);
                 if(i % 5 === 0) await new Promise(r => setTimeout(r, 0));
@@ -467,12 +527,15 @@
         function initFlipbook() {
             const dims = getOptimalBookDimensions();
             const bookElement = document.getElementById('book');
+            
             let usePortraitMode = false;
+            
             if (state.viewMode === 'portrait' || state.viewMode === 'square') {
                 usePortraitMode = true;
             } else if (state.viewMode === 'auto' && isMobile() && window.innerHeight > window.innerWidth) {
                 usePortraitMode = true;
             }
+
             state.pageFlip = new St.PageFlip(bookElement, {
                 width: dims.width,
                 height: dims.height,
@@ -481,26 +544,36 @@
                 showCover: true,
                 size: 'fixed',
                 usePortrait: usePortraitMode,
-                mobileScrollSupport: false,
+                mobileScrollSupport: false, // Disabled for custom gestures
                 startPage: 0
             });
+
             state.pageFlip.loadFromHTML(document.querySelectorAll(".page-content"));
-            state.pageFlip.on('flip', (e) => el('currentPage').textContent = e.data + 1);
+            state.pageFlip.on('flip', (e) => {
+                el('currentPage').textContent = e.data + 1;
+            });
         }
 
-        // --- ZOOM ---
+        // --- ZOOM & TOUCH LOGIC ---
         function updateTransform() {
             const wrapper = el('zoom-wrapper');
             if(state.scale <= 1) { state.panX = 0; state.panY = 0; }
             wrapper.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
         }
+
         function setZoom(newScale) {
             state.scale = Math.max(1, Math.min(newScale, 4));
             updateTransform();
         }
+
         el('zoomIn').onclick = () => setZoom(state.scale + 0.5);
         el('zoomOut').onclick = () => setZoom(state.scale - 0.5);
-        el('zoomReset').onclick = () => { state.scale = 1; state.panX = 0; state.panY = 0; updateTransform(); };
+        el('zoomReset').onclick = () => { 
+            state.scale = 1; 
+            state.panX = 0; 
+            state.panY = 0; 
+            updateTransform(); 
+        };
 
         function setupTouchGestures() {
             const area = el('main-area');
@@ -519,7 +592,8 @@
                     e.preventDefault();
                     const currentDistance = getDistance(e.touches);
                     if (state.initialPinchDistance) {
-                        setZoom(state.initialScale * (currentDistance / state.initialPinchDistance));
+                        const zoomFactor = currentDistance / state.initialPinchDistance;
+                        setZoom(state.initialScale * zoomFactor);
                     }
                 } else if (e.touches.length === 1 && state.scale > 1 && state.isDragging) {
                     e.preventDefault();
@@ -533,11 +607,15 @@
                 if (e.touches.length < 2) { state.initialPinchDistance = null; }
             });
         }
+
         function getDistance(touches) {
-            return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+            return Math.hypot(
+                touches[0].clientX - touches[1].clientX,
+                touches[0].clientY - touches[1].clientY
+            );
         }
 
-        // --- RESIZE ---
+        // --- RESIZE / RE-LAYOUT ---
         let resizeTimeout;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
@@ -546,7 +624,8 @@
                 const currentPage = state.pageFlip ? state.pageFlip.getCurrentPageIndex() : 0;
                 if(state.pageFlip) state.pageFlip.destroy();
                 el('book-container').innerHTML = '<div id="book"></div>';
-                toggleLoader(true, "Adjusting...");
+                
+                toggleLoader(true, "Adjusting Layout...");
                 setTimeout(async () => {
                     await renderPages(state.pdfDoc);
                     initFlipbook();
@@ -556,7 +635,7 @@
             }, 500);
         });
 
-        // --- SHARE LOGIC (UPDATED) ---
+        // --- SHARE & UI HELPERS ---
         el('btnShare').onclick = () => {
             if(!state.pdfDoc) { alert("Load PDF first."); return; }
             toggleShareModal(true);
@@ -567,16 +646,15 @@
                 
                 // 1. Generate Direct Link
                 const baseUrl = window.location.href.split('?')[0];
-                const directLink = `${baseUrl}?pdf=${encodeURIComponent(state.currentUrl)}`;
-                el('shareDirectLink').value = directLink;
+                const link = `${baseUrl}?pdf=${encodeURIComponent(state.currentUrl)}`;
+                el('shareDirectLink').value = link;
 
-                // 2. Generate Embed Code (IFrame)
-                // This ensures "All Features" are preserved because it embeds the whole app
-                const embedCode = `<iframe src="${directLink}" width="100%" height="600px" style="border:none;" allowfullscreen="true" allow="fullscreen"></iframe>`;
-                el('shareEmbedCode').value = embedCode;
+                // 2. Generate Embed Code (HTML)
+                // This creates an iFrame that anyone can put on their site
+                const embedHtml = `<iframe src="${link}" width="100%" height="600px" frameborder="0" allowfullscreen="true" style="border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px;"></iframe>`;
+                el('shareEmbedCode').value = embedHtml;
 
             } else {
-                // Local File Mode
                 el('shareUrlMode').classList.add('hidden');
                 el('shareFileMode').classList.remove('hidden');
             }
@@ -616,13 +694,7 @@
             else l.classList.add('hidden'); 
         }
         function copyToClipboard(id) {
-            el(id).select(); 
-            navigator.clipboard.writeText(el(id).value).then(() => {
-                const btn = document.querySelector(`button[onclick="copyToClipboard('${id}')"]`);
-                const original = btn.innerHTML;
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> COPIED';
-                setTimeout(() => btn.innerHTML = original, 2000);
-            });
+            el(id).select(); navigator.clipboard.writeText(el(id).value).then(()=>alert("Copied to clipboard!"));
         }
 
         el('toggleSidebar').onclick = () => {
@@ -631,8 +703,14 @@
             el('backdrop').classList.toggle('hidden', !state.isSidebarOpen);
         }
         el('backdrop').onclick = el('toggleSidebar').onclick;
+        
         el('prevBtn').onclick = () => state.pageFlip.flipPrev();
         el('nextBtn').onclick = () => state.pageFlip.flipNext();
+        
+        el('jumpBtn').onclick = () => {
+            const page = parseInt(el('jumpInput').value);
+            if(page > 0 && state.pageFlip) state.pageFlip.flip(page - 1);
+        };
 
         async function generateTOC(pdf) {
             const container = el('toc-container');
