@@ -1,127 +1,564 @@
-<!-- Save as make-embed.html and open in browser -->
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PDF Pages URL & Embed Generator</title>
-<style>
-  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#f8fafc;color:#0f172a}
-  .card{max-width:980px;margin:0 auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
-  label{font-weight:700;display:block;margin-top:12px}
-  input, textarea{width:100%;padding:10px;border:1px solid #e6e9ef;border-radius:8px;margin-top:6px;font-size:14px}
-  button{margin-top:10px;padding:10px 12px;border-radius:8px;border:0;background:#0f172a;color:#fff;cursor:pointer}
-  .row{display:flex;gap:10px;margin-top:10px}
-  .small{font-size:13px;color:#475569;margin-top:8px}
-  .result{margin-top:18px;border-top:1px dashed #e6edf3;padding-top:12px}
-  .item{padding:8px;border-radius:8px;border:1px solid #eef2f7;margin-bottom:8px;display:flex;justify-content:space-between;gap:12px;align-items:center}
-  .meta{max-width:60%}
-  .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .actions{display:flex;gap:8px}
-  .code{font-family:monospace;background:#f1f5f9;padding:8px;border-radius:6px;overflow:auto}
-  .copy{padding:8px 10px;background:#0ea5a4;color:#fff;border-radius:6px;border:0;cursor:pointer}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlipMaster: Share & Embed</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+
+    <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root[data-theme="dark"] {
+            --bg-main: #0f172a;
+            --bg-gradient: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            --bg-panel: rgba(30, 41, 59, 0.95);
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --accent: #38bdf8;
+            --border: rgba(148, 163, 184, 0.2);
+            --shadow: rgba(0,0,0,0.6);
+        }
+        :root[data-theme="day"] {
+            --bg-main: #f8fafc;
+            --bg-gradient: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+            --bg-panel: rgba(255, 255, 255, 0.95);
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --accent: #0284c7;
+            --border: rgba(0,0,0,0.1);
+            --shadow: rgba(0,0,0,0.15);
+        }
+        :root[data-theme="dusty"] {
+            --bg-main: #e6dac3;
+            --bg-gradient: radial-gradient(circle at center, #f5eadd 0%, #e6dac3 100%);
+            --bg-panel: rgba(230, 218, 195, 0.95);
+            --text-main: #433422;
+            --text-sub: #786550;
+            --accent: #a0522d;
+            --border: rgba(120, 101, 80, 0.3);
+            --shadow: rgba(67, 52, 34, 0.25);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            transition: color 0.4s ease;
+        }
+
+        .glass-panel {
+            background-color: var(--bg-panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .book-wrapper { box-shadow: 0 25px 50px -12px var(--shadow); }
+
+        .page-content {
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+
+        .loader { border-top-color: var(--accent); animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modal-bg { background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+        
+        textarea { scrollbar-width: thin; scrollbar-color: var(--accent) var(--bg-main); }
+        
+        /* Highlight specific options */
+        .option-active { border-color: var(--accent); background-color: rgba(56, 189, 248, 0.1); }
+    </style>
 </head>
-<body>
-  <div class="card">
-    <h2>PDF GitHub-Pages URL & Embed Generator</h2>
-    <div class="small">Step A: Enter your GitHub Pages base URL (example: <code>https://thupakulabp.github.io/Flip-Master-3D/</code>). Step B: Paste relative PDF file paths (one per line) like <code>PDF/6thclass/physics/1st lesson.pdf</code>.</div>
+<body class="h-screen w-screen flex flex-col relative">
 
-    <label>GitHub Pages Base URL</label>
-    <input id="base" placeholder="https://USERNAME.github.io/REPO/" />
+    <header class="h-16 flex items-center justify-between px-4 z-40 relative glass-panel border-b-0 border-b border-[var(--border)] shadow-sm">
+        <div class="flex items-center gap-4">
+            <button id="toggleSidebar" class="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--text-sub)] hover:text-[var(--text-main)] transition">
+                <i class="fa-solid fa-bars fa-lg"></i>
+            </button>
+            <div class="flex items-center gap-2 hidden sm:flex select-none">
+                <div class="w-8 h-8 rounded bg-[var(--accent)] flex items-center justify-center text-white shadow-lg">
+                    <i class="fa-solid fa-book-open"></i>
+                </div>
+                <h1 class="font-bold text-lg tracking-wide">Flip<span style="color: var(--accent)">Master</span></h1>
+            </div>
+        </div>
 
-    <label>Relative PDF Paths (one per line)</label>
-    <textarea id="paths" rows="8" placeholder="PDF/6thclass/physics/1st lesson.pdf
-PDF/9thclass/physics/5th lesson.pdf"></textarea>
+        <div class="flex items-center gap-1 bg-[var(--bg-main)]/50 p-1 rounded-lg border border-[var(--border)]">
+            <button onclick="setTheme('dark')" class="p-2 rounded hover:text-blue-400 transition" title="Dark"><i class="fa-solid fa-moon"></i></button>
+            <button onclick="setTheme('day')" class="p-2 rounded hover:text-yellow-500 transition" title="Day"><i class="fa-solid fa-sun"></i></button>
+            <button onclick="setTheme('dusty')" class="p-2 rounded hover:text-orange-700 transition" title="Vintage"><i class="fa-solid fa-scroll"></i></button>
+        </div>
 
-    <div class="row">
-      <button id="generate">Generate URLs & Embed Code</button>
-      <button id="clear" style="background:#64748b">Clear</button>
+        <div class="flex items-center gap-3">
+            <button onclick="toggleUrlModal(true)" class="hidden md:flex items-center gap-2 text-[var(--text-sub)] hover:text-[var(--text-main)] text-sm font-medium transition border border-[var(--border)] px-3 py-1.5 rounded-lg bg-[var(--bg-main)] hover:bg-[var(--border)]">
+                <i class="fa-solid fa-link"></i> Load URL
+            </button>
+            
+            <button id="btnShare" class="hidden md:flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition shadow-lg shadow-green-900/20">
+                <i class="fa-solid fa-share-nodes"></i> Share / Embed
+            </button>
+
+            <label class="cursor-pointer bg-[var(--accent)] hover:brightness-110 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span class="hidden sm:inline">Upload</span>
+                <input type="file" id="inpFile" accept="application/pdf" class="hidden">
+            </label>
+        </div>
+    </header>
+
+    <aside id="sidebar" class="sidebar fixed top-16 left-0 h-[calc(100vh-4rem)] w-72 glass-panel border-r border-[var(--border)] transform -translate-x-full z-50 flex flex-col">
+        <div class="p-5 border-b border-[var(--border)]">
+            <h2 class="font-bold mb-4 text-[var(--text-main)] text-xs uppercase tracking-wider opacity-80">Chapters</h2>
+            <div class="flex rounded-lg overflow-hidden border border-[var(--border)] focus-within:border-[var(--accent)] transition">
+                <input type="number" id="jumpInput" placeholder="Page..." class="w-full bg-[var(--bg-main)] text-[var(--text-main)] px-3 py-2 outline-none text-sm placeholder-[var(--text-sub)]">
+                <button id="jumpBtn" class="bg-[var(--bg-panel)] hover:bg-[var(--accent)] hover:text-white px-4 py-2 text-xs font-bold border-l border-[var(--border)] transition">GO</button>
+            </div>
+        </div>
+        <div id="toc-container" class="flex-1 overflow-y-auto p-2"></div>
+    </aside>
+    <div id="backdrop" class="fixed inset-0 bg-black/50 z-40 hidden backdrop-blur-sm"></div>
+
+    <main class="flex-1 relative flex items-center justify-center overflow-hidden w-full perspective-1000">
+        <div class="absolute top-4 right-4 z-30 group">
+            <div class="absolute inset-0 bg-[var(--accent)] rounded blur opacity-20 group-hover:opacity-40 transition"></div>
+            <select id="sizeSelect" class="relative bg-[var(--bg-panel)] text-[var(--text-main)] border border-[var(--border)] rounded px-3 py-1.5 text-xs shadow-lg outline-none cursor-pointer">
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+                <option value="square">Square</option>
+            </select>
+        </div>
+
+        <div id="intro-state" class="text-center p-8 transition-opacity duration-500">
+            <div class="inline-block p-8 rounded-full bg-[var(--bg-panel)] mb-6 border border-[var(--border)] shadow-2xl animate-bounce">
+                <i class="fa-solid fa-book-open-reader text-6xl" style="color: var(--accent)"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-3">FlipMaster</h2>
+            <p class="text-[var(--text-sub)] text-sm max-w-sm mx-auto">
+                Paste a URL to create an Embeddable Flipbook,<br>or Upload a file to read offline.
+            </p>
+        </div>
+
+        <div id="loader" class="hidden absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center">
+            <div class="loader rounded-full border-4 border-t-4 h-14 w-14 mb-6"></div>
+            <p id="loading-text" class="text-white font-mono animate-pulse text-sm tracking-widest uppercase">Processing...</p>
+        </div>
+
+        <div id="zoom-wrapper" class="transition-transform duration-300 ease-out origin-center">
+            <div id="book-container" class="hidden relative book-wrapper"></div>
+        </div>
+    </main>
+
+    <div id="controls" class="hidden fixed bottom-8 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-6 py-3 flex items-center gap-4 shadow-2xl z-50 border border-[var(--border)] max-w-[95vw]">
+        <button id="prevBtn" class="text-[var(--text-sub)] hover:text-[var(--text-main)] hover:scale-110 transition"><i class="fa-solid fa-arrow-left-long fa-lg"></i></button>
+        <span class="font-mono text-sm text-[var(--text-main)] font-bold select-none min-w-[70px] text-center">
+            <span id="currentPage">0</span><span class="text-[var(--text-sub)] mx-1">/</span><span id="totalPages">0</span>
+        </span>
+        <button id="nextBtn" class="text-[var(--text-sub)] hover:text-[var(--text-main)] hover:scale-110 transition"><i class="fa-solid fa-arrow-right-long fa-lg"></i></button>
+        <div class="w-px h-6 bg-[var(--border)] hidden sm:block"></div>
+        <button id="zoomOut" class="text-[var(--text-sub)] hover:text-[var(--accent)] hidden sm:block"><i class="fa-solid fa-minus"></i></button>
+        <button id="zoomIn" class="text-[var(--text-sub)] hover:text-[var(--accent)] hidden sm:block"><i class="fa-solid fa-plus"></i></button>
+        <div class="w-px h-6 bg-[var(--border)] hidden sm:block"></div>
+        <button id="fullscreenBtn" class="text-[var(--text-sub)] hover:text-[var(--accent)] transition"><i class="fa-solid fa-expand"></i></button>
     </div>
 
-    <div id="out" class="result"></div>
-  </div>
-
-<script>
-(function(){
-  const baseEl = document.getElementById('base');
-  const pathsEl = document.getElementById('paths');
-  const out = document.getElementById('out');
-  const gen = document.getElementById('generate');
-  const clear = document.getElementById('clear');
-
-  function normalizeBase(u){
-    if(!u) return '';
-    u = u.trim();
-    // ensure trailing slash
-    if(!u.endsWith('/')) u += '/';
-    return u;
-  }
-
-  function urlEncodePath(p){
-    // encode each segment to preserve slashes but encode spaces & special chars
-    return p.split('/').map(seg => encodeURIComponent(seg)).join('/');
-  }
-
-  function makeEmbedIframe(url){
-    // Basic iframe style; many flipbook widgets accept the PDF url instead
-    return '<iframe src="'+url+'" width="100%" height="640" frameborder="0"></iframe>';
-  }
-
-  function makeHtmlBlock(url, label){
-    const title = label || url.split('/').pop();
-    const iframe = makeEmbedIframe(url);
-    return `
-      <div class="item">
-        <div class="meta">
-          <b title="${title}">${title}</b>
-          <div style="font-size:13px;color:#475569">${url}</div>
+    <div id="urlModal" class="fixed inset-0 z-[100] modal-bg hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl shadow-2xl p-6">
+            <h3 class="font-bold text-lg mb-4 text-[var(--text-main)]">Load from URL</h3>
+            <input type="text" id="urlInput" placeholder="https://example.com/document.pdf" class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded-lg p-3 outline-none text-sm mb-4 focus:ring-2 ring-[var(--accent)]">
+            <div class="flex justify-end gap-3">
+                <button onclick="toggleUrlModal(false)" class="text-[var(--text-sub)] px-4 py-2 text-sm">Cancel</button>
+                <button id="btnFetchUrl" class="bg-[var(--accent)] text-white px-6 py-2 rounded-lg text-sm font-bold shadow-lg">Load PDF</button>
+            </div>
         </div>
-        <div class="actions">
-          <a href="${url}" target="_blank" style="text-decoration:none;padding:8px 10px;background:#0f172a;color:#fff;border-radius:6px">Open</a>
-          <button class="copy" data-embed="${encodeURIComponent(iframe)}">Copy embed</button>
+    </div>
+
+    <div id="shareModal" class="fixed inset-0 z-[100] modal-bg hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b border-[var(--border)] flex justify-between items-center">
+                <h3 class="font-bold text-lg text-[var(--text-main)]">
+                    <i class="fa-solid fa-share-nodes mr-2 text-[var(--accent)]"></i>Share & Embed
+                </h3>
+                <button onclick="toggleShareModal(false)" class="text-[var(--text-sub)] hover:text-red-500 transition"><i class="fa-solid fa-xmark fa-xl"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-6">
+                
+                <div id="shareUrlMode" class="hidden space-y-4">
+                    <div class="bg-green-500/10 border border-green-500/30 p-3 rounded-lg text-green-400 text-xs flex items-start gap-2">
+                        <i class="fa-solid fa-check-circle mt-0.5"></i>
+                        <div>
+                            <strong>Ready to Embed!</strong><br>Since this PDF is loaded via URL, we generated a clean embed code for you.
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[var(--text-sub)] text-xs font-bold mb-1">Direct Share Link</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="shareDirectLink" readonly class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-xs font-mono">
+                            <button onclick="copyToClipboard('shareDirectLink')" class="bg-[var(--bg-panel)] border border-[var(--border)] text-[var(--text-main)] px-3 rounded text-xs hover:bg-[var(--accent)] hover:text-white transition">Copy</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[var(--text-sub)] text-xs font-bold mb-1">Embed Code (Iframe)</label>
+                        <div class="relative group">
+                            <textarea id="shareEmbedCode" readonly class="w-full h-24 bg-[var(--bg-main)] text-green-400 p-3 rounded-lg text-xs font-mono border border-[var(--border)] focus:outline-none resize-none"></textarea>
+                            <button onclick="copyToClipboard('shareEmbedCode')" class="absolute top-2 right-2 bg-white/10 text-white px-2 py-1 rounded text-xs hover:bg-white/20 transition">Copy Code</button>
+                        </div>
+                        <p class="text-[var(--text-sub)] text-[10px] mt-1">Paste this code into WordPress, Wix, or any HTML editor.</p>
+                    </div>
+                </div>
+
+                <div id="shareFileMode" class="hidden space-y-4">
+                     <div class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg text-yellow-400 text-xs flex items-start gap-2">
+                        <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                        <div>
+                            <strong>Local File Detected</strong><br>
+                            You uploaded a file from your computer. To get a shareable link or embed code, please upload your PDF to a cloud server (like Dropbox/Drive) first, then use the <b>"Load URL"</b> option.
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-bold text-[var(--text-main)] text-sm mb-2">Alternative: Download HTML Result</h4>
+                        <p class="text-[var(--text-sub)] text-xs mb-3">You can download this book as a standalone HTML file to email or save.</p>
+                        <div class="relative group">
+                            <textarea id="htmlResultCode" readonly class="w-full h-32 bg-[var(--bg-main)] text-[var(--text-sub)] p-3 rounded-lg text-xs font-mono border border-[var(--border)] focus:outline-none resize-none">Click "Download" to get the file.</textarea>
+                            <button onclick="downloadStandalone()" class="absolute bottom-3 right-3 bg-[var(--accent)] text-white px-4 py-2 rounded shadow-lg text-xs font-bold hover:brightness-110">Download .html File</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
-      </div>
-      <div class="code">${iframe}</div>
-    `;
-  }
+    </div>
 
-  gen.addEventListener('click', ()=>{
-    const base = normalizeBase(baseEl.value);
-    const raw = pathsEl.value.trim();
-    if(!base){
-      alert('Enter your GitHub Pages base URL (example: https://thupakulabp.github.io/Flip-Master-3D/ )');
-      return;
-    }
-    if(!raw){ alert('Paste at least one relative PDF path.'); return; }
-    out.innerHTML = '<div style="font-size:13px;color:#475569">Generating...<\/div>';
-    const lines = raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    let html = '';
-    lines.forEach(l=>{
-      let finalUrl;
-      if(/^https?:\/\//i.test(l)){
-        finalUrl = l; // full URL already
-      } else {
-        const enc = urlEncodePath(l.replace(/^\/+/,''));
-        finalUrl = base + enc;
-      }
-      html += makeHtmlBlock(finalUrl, l);
-    });
-    out.innerHTML = html + '<div style="font-size:13px;color:#475569;margin-top:8px">Click <b>Copy embed</b> to copy iframe HTML to clipboard and paste into your Blogger post (HTML view) or any flipbook tool that accepts a PDF URL.</div>';
-    // attach copy handlers
-    document.querySelectorAll('.copy').forEach(btn=>{
-      btn.addEventListener('click', (e)=>{
-        const embed = decodeURIComponent(btn.getAttribute('data-embed'));
-        navigator.clipboard.writeText(embed).then(()=>{
-          btn.textContent = 'Copied!';
-          setTimeout(()=>btn.textContent='Copy embed',1200);
-        }).catch(()=> alert('Clipboard failed. Select and copy manually:\\n\\n'+embed));
-      });
-    });
-  });
+    <script>
+        // --- CONFIG & STATE ---
+        const state = {
+            pdfDoc: null,
+            pageFlip: null,
+            fileBase64: null, // Only used for File Mode Export
+            currentUrl: null, // Used for URL Mode Export
+            loadType: null,   // 'file' or 'url'
+            scale: 0.9,
+            isSidebarOpen: false
+        };
 
-  clear.addEventListener('click', ()=> {baseEl.value=''; pathsEl.value=''; out.innerHTML='';});
-})();
-</script>
+        const bookSizes = {
+            portrait: { width: 550, height: 750 },
+            landscape: { width: 800, height: 500 },
+            square: { width: 600, height: 600 }
+        };
+
+        const flipSound = new Audio('https://cdn.pixabay.com/download/audio/2022/03/24/audio_0766dd3431.mp3?filename=book-flip-shaker-1-14449.mp3'); 
+        flipSound.volume = 0.5;
+
+        const el = (id) => document.getElementById(id);
+        function setTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }
+        function toggleLoader(show, text="Processing...") {
+            const l = el('loader');
+            if(show) { l.classList.remove('hidden'); el('loading-text').textContent = text; }
+            else { l.classList.add('hidden'); }
+        }
+
+        // --- CHECK FOR URL PARAMS ON LOAD (For Embeds) ---
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const pdfUrl = params.get('pdf');
+            if(pdfUrl) {
+                // Auto Load
+                el('urlInput').value = pdfUrl;
+                el('btnFetchUrl').click();
+                // Hide Header for clean embed look
+                document.querySelector('header').style.display = 'none';
+                el('controls').style.maxWidth = '100vw'; 
+            }
+        });
+
+        // --- HANDLERS ---
+        el('inpFile').addEventListener('change', async (e) => {
+            if(e.target.files[0]) {
+                state.loadType = 'file';
+                state.currentUrl = null;
+                processFile(e.target.files[0]);
+            }
+        });
+
+        async function processFile(file) {
+            // Read Base64 (for HTML file export fallback)
+            const reader = new FileReader();
+            reader.onload = () => { state.fileBase64 = reader.result; };
+            reader.readAsDataURL(file);
+
+            const buffer = await file.arrayBuffer();
+            loadDocument(new Uint8Array(buffer));
+        }
+
+        el('btnFetchUrl').addEventListener('click', async () => {
+            const url = el('urlInput').value.trim();
+            if(!url) return;
+            toggleUrlModal(false);
+            toggleLoader(true, "Fetching...");
+            try {
+                const res = await fetch(url);
+                if(!res.ok) throw new Error("CORS Error");
+                const blob = await res.blob();
+                
+                state.loadType = 'url';
+                state.currentUrl = url;
+                state.fileBase64 = null; // Clear heavy data
+
+                const buffer = await blob.arrayBuffer();
+                loadDocument(new Uint8Array(buffer));
+            } catch(e) {
+                toggleLoader(false);
+                alert("URL Failed. The site blocks external access (CORS).");
+            }
+        });
+
+        el('sizeSelect').addEventListener('change', async () => {
+            if(!state.pdfDoc) return;
+            const currentPage = state.pageFlip ? state.pageFlip.getCurrentPageIndex() : 0;
+            toggleLoader(true, "Resizing...");
+            if(state.pageFlip) { state.pageFlip.destroy(); state.pageFlip = null; }
+            el('book-container').innerHTML = '<div id="book"></div>';
+            setTimeout(async () => {
+                await renderPages(state.pdfDoc);
+                initFlipbook();
+                if(state.pageFlip) try { state.pageFlip.flip(currentPage, false); } catch(e){}
+                toggleLoader(false);
+            }, 50);
+        });
+
+        // --- CORE RENDER ---
+        async function loadDocument(data) {
+            toggleLoader(true, "Analyzing...");
+            el('intro-state').classList.add('hidden');
+            if(state.pageFlip) { state.pageFlip.destroy(); state.pageFlip = null; }
+            el('book-container').innerHTML = '<div id="book"></div>';
+
+            try {
+                state.pdfDoc = await pdfjsLib.getDocument(data).promise;
+                el('totalPages').textContent = state.pdfDoc.numPages;
+
+                const page1 = await state.pdfDoc.getPage(1);
+                const viewport = page1.getViewport({ scale: 1 });
+                if (viewport.width > viewport.height * 1.2) el('sizeSelect').value = 'landscape';
+                else if (Math.abs(viewport.width - viewport.height) < 100) el('sizeSelect').value = 'square';
+                else el('sizeSelect').value = 'portrait';
+
+                await renderPages(state.pdfDoc);
+                initFlipbook();
+                await generateTOC(state.pdfDoc);
+
+                el('book-container').classList.remove('hidden');
+                el('controls').classList.remove('hidden');
+            } catch(err) {
+                alert("Error: " + err.message);
+                el('intro-state').classList.remove('hidden');
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        async function renderPages(pdf) {
+            const bookDiv = document.getElementById('book');
+            const total = pdf.numPages;
+            const isLandscape = el('sizeSelect').value === 'landscape';
+            const renderScale = isLandscape ? 1.2 : 1.5;
+
+            for(let i = 1; i <= total; i++) {
+                el('loading-text').textContent = `Rendering ${i}/${total}`;
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: renderScale });
+                const div = document.createElement('div');
+                div.className = "page-content shadow-inner"; 
+                const canvas = document.createElement('canvas');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                canvas.style.cssText = "width: 100%; height: 100%; object-fit: contain;";
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                div.appendChild(canvas);
+                bookDiv.appendChild(div);
+                if(i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+        }
+
+        function initFlipbook() {
+            const format = el('sizeSelect').value;
+            const dims = bookSizes[format];
+            const isMobile = window.innerWidth < 768;
+            const bookElement = document.getElementById('book');
+
+            state.pageFlip = new St.PageFlip(bookElement, {
+                width: dims.width,
+                height: dims.height,
+                size: isMobile ? "fixed" : "stretch",
+                minWidth: 300,
+                maxWidth: 1400,
+                minHeight: 300,
+                maxHeight: 1200,
+                maxShadowOpacity: 0.5,
+                showCover: true,
+                mobileScrollSupport: false
+            });
+
+            state.pageFlip.loadFromHTML(document.querySelectorAll(".page-content"));
+            state.pageFlip.on('flip', (e) => {
+                el('currentPage').textContent = e.data + 1;
+                flipSound.currentTime = 0;
+                flipSound.play().catch(e => {});
+            });
+
+            el('prevBtn').onclick = () => state.pageFlip.flipPrev();
+            el('nextBtn').onclick = () => state.pageFlip.flipNext();
+            applyZoom();
+        }
+
+        // --- SHARE / EMBED LOGIC ---
+        el('btnShare').onclick = () => {
+            if(!state.pdfDoc) { alert("Please load a PDF first."); return; }
+            
+            toggleShareModal(true);
+            
+            if(state.loadType === 'url') {
+                // Show URL Mode
+                el('shareUrlMode').classList.remove('hidden');
+                el('shareFileMode').classList.add('hidden');
+                
+                // 1. Generate Direct Link (Append ?pdf=URL)
+                // We use the current window location + param
+                const baseUrl = window.location.href.split('?')[0];
+                const directLink = `${baseUrl}?pdf=${encodeURIComponent(state.currentUrl)}`;
+                el('shareDirectLink').value = directLink;
+                
+                // 2. Generate Embed Code
+                const embedCode = `<iframe src="${directLink}" width="100%" height="600px" style="border:none;" allowfullscreen></iframe>`;
+                el('shareEmbedCode').value = embedCode;
+
+            } else {
+                // Show File Mode
+                el('shareUrlMode').classList.add('hidden');
+                el('shareFileMode').classList.remove('hidden');
+            }
+        };
+
+        // Fallback for Local File Export (Download standalone)
+        window.downloadStandalone = () => {
+            const size = el('sizeSelect').value;
+            const injection = `
+            <script>
+                const autoLoadData = "${state.fileBase64}";
+                const preferredSize = "${size}";
+                function dataURItoUint8Array(dataURI) {
+                    const byteString = atob(dataURI.split(',')[1]);
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    for (let i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
+                    return ia;
+                }
+                window.addEventListener('load', () => {
+                    document.getElementById('sizeSelect').value = preferredSize;
+                    document.getElementById('intro-state').style.display = 'none';
+                    const h = document.querySelector('header'); if(h) h.style.display = 'none';
+                    const pdfData = dataURItoUint8Array(autoLoadData);
+                    loadDocument(pdfData);
+                });
+            <\/script>`;
+            
+            const htmlContent = document.documentElement.outerHTML.replace('</body>', injection + '</body>');
+            const blob = new Blob([htmlContent], {type: "text/html"});
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "FlipBook-Viewer.html";
+            link.click();
+        }
+
+        // --- HELPERS ---
+        function toggleUrlModal(show) { el('urlModal').style.display = show ? 'flex' : 'none'; }
+        function toggleShareModal(show) { el('shareModal').style.display = show ? 'flex' : 'none'; }
+        function copyToClipboard(id) {
+            const t = el(id); t.select();
+            navigator.clipboard.writeText(t.value).then(()=>alert("Copied to clipboard!"));
+        }
+
+        el('toggleSidebar').onclick = () => {
+            state.isSidebarOpen = !state.isSidebarOpen;
+            el('sidebar').classList.toggle('-translate-x-full', !state.isSidebarOpen);
+            el('backdrop').classList.toggle('hidden', !state.isSidebarOpen);
+        }
+        el('backdrop').onclick = el('toggleSidebar').onclick;
+        
+        el('zoomIn').onclick = () => { state.scale += 0.1; applyZoom(); };
+        el('zoomOut').onclick = () => { if(state.scale > 0.4) state.scale -= 0.1; applyZoom(); };
+        function applyZoom() { el('zoom-wrapper').style.transform = `scale(${state.scale})`; }
+        
+        el('jumpBtn').onclick = () => {
+            const val = parseInt(el('jumpInput').value);
+            if(val > 0 && val <= state.pdfDoc.numPages) state.pageFlip.flip(val - 1);
+        };
+        el('fullscreenBtn').onclick = () => {
+            if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); el('fullscreenBtn').innerHTML = '<i class="fa-solid fa-compress"></i>'; }
+            else { if (document.exitFullscreen) { document.exitFullscreen(); el('fullscreenBtn').innerHTML = '<i class="fa-solid fa-expand"></i>'; } }
+        };
+
+        async function generateTOC(pdf) {
+            const container = el('toc-container');
+            container.innerHTML = "";
+            const outline = await pdf.getOutline();
+            if(!outline) { container.innerHTML = `<div class="text-center mt-10 text-[var(--text-sub)] text-sm italic">No bookmarks found.</div>`; return; }
+            const ul = document.createElement('ul');
+            ul.className = "space-y-1";
+            
+            const processItems = async (items, parent) => {
+                for(const item of items) {
+                    const li = document.createElement('li');
+                    const div = document.createElement('div');
+                    div.className = "p-2 rounded-lg cursor-pointer text-sm text-[var(--text-sub)] hover:bg-[var(--accent)] hover:text-white transition truncate flex items-center gap-2";
+                    div.innerHTML = `<i class="fa-solid fa-caret-right text-xs opacity-50"></i> <span>${item.title}</span>`;
+                    div.onclick = async () => {
+                        if(item.dest) {
+                            let dest = item.dest;
+                            if(typeof dest === 'string') dest = await pdf.getDestination(dest);
+                            if(dest) {
+                                const index = await pdf.getPageIndex(dest[0]);
+                                state.pageFlip.flip(index);
+                                if(window.innerWidth < 768) el('toggleSidebar').click();
+                            }
+                        }
+                    };
+                    li.appendChild(div);
+                    if(item.items && item.items.length) {
+                        const subUl = document.createElement('ul');
+                        subUl.className = "pl-4 border-l border-[var(--border)] ml-2";
+                        await processItems(item.items, subUl);
+                        li.appendChild(subUl);
+                    }
+                    parent.appendChild(li);
+                }
+            };
+            await processItems(outline, ul);
+            container.appendChild(ul);
+        }
+    </script>
 </body>
 </html>
