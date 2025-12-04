@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FlipMaster Mobile</title>
+    <title>FlipMaster Pro</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -55,7 +55,7 @@
             margin: 0;
             padding: 0;
             overscroll-behavior: none; 
-            overflow: hidden; /* Critical for custom zoom */
+            overflow: hidden; 
         }
 
         body {
@@ -75,7 +75,7 @@
         /* Book wrapper interactions */
         .book-wrapper { 
             box-shadow: 0 10px 30px -10px var(--shadow); 
-            /* We handle touch via JS now for pinch zoom */
+            transition: box-shadow 0.3s ease;
         }
 
         .page-content {
@@ -97,12 +97,28 @@
         .modal-bg { background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
         
         input, select, button { font-size: 16px !important; }
+
+        /* Custom Select Style for Header */
+        .custom-select {
+            background-color: var(--bg-main);
+            color: var(--text-sub);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.3rem 0.5rem;
+            font-size: 0.75rem !important;
+            outline: none;
+            cursor: pointer;
+            appearance: none; /* Hide default arrow */
+            text-align: center;
+        }
+        .custom-select:hover { border-color: var(--accent); color: var(--text-main); }
     </style>
 </head>
 <body class="h-[100dvh] w-screen flex flex-col relative overflow-hidden">
 
-    <header class="h-14 flex items-center justify-between px-3 z-[60] relative glass-panel border-b-0 border-b border-[var(--border)] shadow-sm shrink-0">
-        <div class="flex items-center gap-3">
+    <header class="h-14 flex items-center justify-between px-2 sm:px-4 z-[60] relative glass-panel border-b-0 border-b border-[var(--border)] shadow-sm shrink-0">
+        
+        <div class="flex items-center gap-2 sm:gap-3">
             <button id="toggleSidebar" class="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--text-sub)] hover:text-[var(--text-main)] transition">
                 <i class="fa-solid fa-bars fa-lg"></i>
             </button>
@@ -115,18 +131,31 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <button onclick="cycleTheme()" id="themeBtn" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)]">
+            
+            <div class="relative group" title="Page Layout">
+                <select id="viewModeSelect" onchange="changeViewMode(this.value)" class="custom-select w-20 sm:w-24">
+                    <option value="auto">Auto Fit</option>
+                    <option value="portrait">Portrait</option>
+                    <option value="landscape">Landscape</option>
+                    <option value="square">Square</option>
+                </select>
+                <div class="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[var(--text-sub)] text-[10px]">
+                    <i class="fa-solid fa-caret-down"></i>
+                </div>
+            </div>
+
+            <button onclick="cycleTheme()" id="themeBtn" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)] transition" title="Change Theme">
                 <i class="fa-solid fa-circle-half-stroke"></i>
+            </button>
+
+            <button onclick="toggleFullScreen()" id="fsBtn" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)] transition" title="Full Screen">
+                <i class="fa-solid fa-expand"></i>
             </button>
 
             <button onclick="toggleUrlModal(true)" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)]" title="Load URL">
                 <i class="fa-solid fa-link"></i>
             </button>
             
-            <button id="btnShare" class="p-2 rounded-lg bg-green-600/20 text-green-400 border border-green-600/30 hover:bg-green-600 hover:text-white transition">
-                <i class="fa-solid fa-share-nodes"></i>
-            </button>
-
             <label class="cursor-pointer bg-[var(--accent)] hover:brightness-110 text-white p-2 sm:px-4 sm:py-2 rounded-lg font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
                 <span class="hidden sm:inline text-sm">Upload</span>
@@ -149,9 +178,9 @@
 
     <main id="main-area" class="flex-1 relative flex items-center justify-center overflow-hidden w-full perspective-1000 h-full touch-none">
         
-        <div class="absolute top-2 right-2 z-30 opacity-50 hover:opacity-100 transition">
+        <div id="fit-badge" class="absolute top-2 right-2 z-30 opacity-50 hover:opacity-100 transition hidden">
              <div class="bg-[var(--bg-panel)] text-[var(--text-sub)] text-[10px] px-2 py-1 rounded border border-[var(--border)] pointer-events-none">
-                <i class="fa-solid fa-rotate"></i> Auto-Fit Active
+                <i class="fa-solid fa-ruler-combined"></i> <span id="fit-text">Auto Fit</span>
             </div>
         </div>
 
@@ -253,7 +282,9 @@
             startPanX: 0,
             startPanY: 0,
             initialPinchDistance: null,
-            initialScale: 1.0
+            initialScale: 1.0,
+            // New View Mode
+            viewMode: 'auto' // 'auto', 'portrait', 'landscape', 'square'
         };
 
         const themes = ['dark', 'day', 'dusty'];
@@ -266,26 +297,111 @@
             setTheme(themes[currentThemeIdx]);
         }
 
+        // --- NEW FEATURES: FULL SCREEN & VIEW MODES ---
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => {
+                    console.log("Fullscreen not supported or allowed");
+                });
+                el('fsBtn').innerHTML = '<i class="fa-solid fa-compress"></i>';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    el('fsBtn').innerHTML = '<i class="fa-solid fa-expand"></i>';
+                }
+            }
+        }
+
+        function changeViewMode(mode) {
+            state.viewMode = mode;
+            el('fit-badge').classList.remove('hidden');
+            
+            const labels = { 'auto': 'Auto Fit', 'portrait': 'Portrait', 'landscape': 'Landscape', 'square': 'Square' };
+            el('fit-text').textContent = labels[mode];
+
+            // Trigger re-render of layout
+            if(state.pdfDoc) {
+                // Manually trigger the resize event logic
+                window.dispatchEvent(new Event('resize'));
+            }
+        }
+
         // --- HELPERS ---
         function isMobile() { return window.innerWidth < 768; }
         
         function getOptimalBookDimensions() {
+            // Get available space (subtracting headers/margins)
             const w = window.innerWidth;
             const h = window.innerHeight;
             
-            if (isMobile()) {
-                const isPortrait = h > w;
-                // FIX: More conservative margins to prevent overflow on top URL bar
-                // Portrait: Subtract 160px for header + controls
-                // Landscape: Subtract 100px for margins
-                if (isPortrait) {
-                    return { width: w - 20, height: h - 180, mode: 'portrait' };
+            // Margins for UI
+            const marginX = isMobile() ? 20 : 60;
+            const marginY = isMobile() ? 160 : 120; // Space for Header + Controls
+
+            const maxW = w - marginX;
+            const maxH = h - marginY;
+
+            let finalW, finalH, finalMode;
+
+            // 1. Calculate based on View Mode
+            if (state.viewMode === 'auto') {
+                if (isMobile()) {
+                    // Mobile Auto: Portrait if vertical screen, Landscape if horizontal
+                    if (h > w) {
+                        finalW = maxW;
+                        finalH = maxH;
+                        finalMode = 'portrait';
+                    } else {
+                        finalW = maxW / 2; // Split for spread
+                        finalH = maxH;
+                        finalMode = 'landscape';
+                    }
                 } else {
-                    return { width: (w - 60) / 2, height: h - 100, mode: 'landscape' };
+                    // Desktop Auto: Landscape spread
+                    finalW = 550;
+                    finalH = 750;
+                    finalMode = 'landscape';
                 }
-            } else {
-                return { width: 550, height: 750, mode: 'landscape' };
+            } else if (state.viewMode === 'portrait') {
+                // Force Portrait: Ratio approx 1 : 1.41
+                const ratio = 1.41;
+                // Try fitting by height first
+                finalH = maxH;
+                finalW = finalH / ratio;
+                // If too wide, fit by width
+                if (finalW > maxW) {
+                    finalW = maxW;
+                    finalH = finalW * ratio;
+                }
+                finalMode = 'portrait'; // Single page
+            } else if (state.viewMode === 'landscape') {
+                // Force Landscape: Ratio approx 1.41 : 1
+                const ratio = 1.41; // Width is larger
+                // For flipbook, this is the width of ONE page. 
+                // In landscape mode, we usually see 2 pages. 
+                // Let's assume user wants a wider look.
+                
+                finalW = maxW / (isMobile() ? 1 : 2); // On mobile landscape usually means 1 wide page in this context or small spread? 
+                // Let's stick to standard spread logic for "Landscape" mode setting
+                if(isMobile()) finalW = (w - 40) / 2; 
+                else finalW = 550;
+
+                finalH = finalW * 1.41; // Standard A4 ratio
+                if(finalH > maxH) {
+                    finalH = maxH;
+                    finalW = finalH / 1.41;
+                }
+                finalMode = 'landscape';
+            } else if (state.viewMode === 'square') {
+                // Square 1:1
+                const size = Math.min(maxW, maxH);
+                finalW = size;
+                finalH = size;
+                finalMode = 'portrait'; // Treat as single page technically to avoid weird spreads
             }
+
+            return { width: finalW, height: finalH, mode: finalMode };
         }
 
         // --- INITIALIZATION ---
@@ -361,7 +477,7 @@
         async function renderPages(pdf) {
             const bookDiv = document.getElementById('book');
             const total = pdf.numPages;
-            const renderScale = isMobile() ? 1.5 : 1.5; // Better quality for zoom
+            const renderScale = isMobile() ? 1.5 : 1.5; 
 
             for(let i = 1; i <= total; i++) {
                 el('loading-text').textContent = `Page ${i}/${total}`;
@@ -389,15 +505,15 @@
             const dims = getOptimalBookDimensions();
             const bookElement = document.getElementById('book');
             
-            const mobileSettings = isMobile() ? {
-                size: 'fixed',
-                usePortrait: true,
-                mobileScrollSupport: false, // Disabled to allow our custom zoom gestures
-                startPage: 0
-            } : {
-                size: 'fixed',
-                usePortrait: false
-            };
+            // Logic to determine if we use Portrait (Single Page) mode in the library
+            // If user selected Portrait OR Square OR (Auto + Mobile Portrait) -> Use Portrait Mode
+            let usePortraitMode = false;
+            
+            if (state.viewMode === 'portrait' || state.viewMode === 'square') {
+                usePortraitMode = true;
+            } else if (state.viewMode === 'auto' && isMobile() && window.innerHeight > window.innerWidth) {
+                usePortraitMode = true;
+            }
 
             state.pageFlip = new St.PageFlip(bookElement, {
                 width: dims.width,
@@ -405,7 +521,10 @@
                 maxWidth: 2000,
                 maxHeight: 2000,
                 showCover: true,
-                ...mobileSettings
+                size: 'fixed',
+                usePortrait: usePortraitMode,
+                mobileScrollSupport: false, // Disabled for custom gestures
+                startPage: 0
             });
 
             state.pageFlip.loadFromHTML(document.querySelectorAll(".page-content"));
@@ -414,20 +533,18 @@
             });
         }
 
-        // --- ZOOM & TOUCH LOGIC (NEW FEATURE) ---
+        // --- ZOOM & TOUCH LOGIC ---
         function updateTransform() {
             const wrapper = el('zoom-wrapper');
-            // Limit pan boundaries based on scale
             if(state.scale <= 1) { state.panX = 0; state.panY = 0; }
             wrapper.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
         }
 
         function setZoom(newScale) {
-            state.scale = Math.max(1, Math.min(newScale, 4)); // Min 1x, Max 4x
+            state.scale = Math.max(1, Math.min(newScale, 4));
             updateTransform();
         }
 
-        // Add Zoom Buttons
         el('zoomIn').onclick = () => setZoom(state.scale + 0.5);
         el('zoomOut').onclick = () => setZoom(state.scale - 0.5);
         el('zoomReset').onclick = () => { 
@@ -439,43 +556,34 @@
 
         function setupTouchGestures() {
             const area = el('main-area');
-
             area.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 2) {
-                    // Pinch Start
                     state.initialPinchDistance = getDistance(e.touches);
                     state.initialScale = state.scale;
                 } else if (e.touches.length === 1 && state.scale > 1) {
-                    // Pan Start (only if zoomed in)
                     state.isDragging = true;
                     state.startPanX = e.touches[0].clientX - state.panX;
                     state.startPanY = e.touches[0].clientY - state.panY;
                 }
             });
-
             area.addEventListener('touchmove', (e) => {
                 if (e.touches.length === 2) {
-                    // Pinch Move
-                    e.preventDefault(); // Stop browser zoom
+                    e.preventDefault();
                     const currentDistance = getDistance(e.touches);
                     if (state.initialPinchDistance) {
                         const zoomFactor = currentDistance / state.initialPinchDistance;
                         setZoom(state.initialScale * zoomFactor);
                     }
                 } else if (e.touches.length === 1 && state.scale > 1 && state.isDragging) {
-                    // Pan Move
-                    e.preventDefault(); // Stop swipe nav
+                    e.preventDefault();
                     state.panX = e.touches[0].clientX - state.startPanX;
                     state.panY = e.touches[0].clientY - state.startPanY;
                     updateTransform();
                 }
             });
-
             area.addEventListener('touchend', (e) => {
                 state.isDragging = false;
-                if (e.touches.length < 2) {
-                    state.initialPinchDistance = null;
-                }
+                if (e.touches.length < 2) { state.initialPinchDistance = null; }
             });
         }
 
@@ -486,8 +594,7 @@
             );
         }
 
-
-        // --- ORIENTATION CHANGE ---
+        // --- RESIZE / RE-LAYOUT ---
         let resizeTimeout;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
@@ -497,7 +604,7 @@
                 if(state.pageFlip) state.pageFlip.destroy();
                 el('book-container').innerHTML = '<div id="book"></div>';
                 
-                toggleLoader(true, "Adjusting...");
+                toggleLoader(true, "Adjusting Layout...");
                 setTimeout(async () => {
                     await renderPages(state.pdfDoc);
                     initFlipbook();
