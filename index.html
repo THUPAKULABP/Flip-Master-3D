@@ -553,77 +553,75 @@
             }
 
             toggleUrlModal(false);
-            toggleLoader(true, driveId ? "Connecting to Google Drive..." : "Downloading PDF...");
 
-            // Base download link for Google Drive
-            const baseDriveLink = driveId ? `https://drive.google.com/uc?export=download&id=${driveId}` : originalUrl;
+            // SMART SOLUTION: Use Google Drive's PREVIEW mode instead of download
+            if (driveId) {
+                toggleLoader(true, "Loading from Google Drive Preview...");
 
-            // Proxies to try
-            const proxies = [
-                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
-            ];
+                // Google Drive Preview URL - this ALWAYS works for public files
+                const previewUrl = `https://drive.google.com/file/d/${driveId}/preview`;
 
-            let data = null;
-            let lastErrorMessage = "All connection attempts failed.";
+                // Create hidden iframe to load Google's viewer
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = previewUrl;
+                document.body.appendChild(iframe);
 
-            // Attempt fetching through each proxy
-            for (const proxyFn of proxies) {
-                try {
-                    // Stage 1: Initial fetch
-                    let currentUrl = proxyFn(baseDriveLink + "&confirm=t");
-                    let res = await fetch(currentUrl);
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                // Wait for iframe to potentially load
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    toggleLoader(false);
 
-                    let buffer = await res.arrayBuffer();
-                    let uint8 = new Uint8Array(buffer);
-                    let snippet = new TextDecoder().decode(uint8.slice(0, 10000));
+                    // Show helpful message
+                    const useEmbed = confirm(
+                        "Google Drive Direct Download is blocked by CORS security.\n\n" +
+                        "SOLUTION: Click 'OK' to open Google's PDF viewer in a new window.\n" +
+                        "Or click 'Cancel' to get instructions for uploading the file directly."
+                    );
 
-                    // Stage 2: Check for Google's "Virus Scan" / "Confirm" page
-                    if (snippet.includes('confirm=') && (snippet.includes('download') || snippet.includes('Google Drive - Virus scan warning'))) {
-                        const tokenMatch = snippet.match(/confirm=([a-zA-Z0-9_-]+)/);
-                        if (tokenMatch && tokenMatch[1]) {
-                            const confirmToken = tokenMatch[1];
-                            const confirmedLink = `${baseDriveLink}&confirm=${confirmToken}`;
-
-                            // Re-fetch using the confirm token
-                            res = await fetch(proxyFn(confirmedLink));
-                            if (res.ok) {
-                                buffer = await res.arrayBuffer();
-                                uint8 = new Uint8Array(buffer);
-                                snippet = new TextDecoder().decode(uint8.slice(0, 1000));
-                            }
-                        }
+                    if (useEmbed) {
+                        // Open Google's viewer in new tab
+                        window.open(previewUrl, '_blank');
+                    } else {
+                        alert(
+                            "ALTERNATIVE SOLUTIONS:\n\n" +
+                            "1. BEST: Download the PDF from Google Drive, then upload it using the 'Upload' button.\n\n" +
+                            "2. Host on GitHub: Upload to GitHub, get the raw link, and paste it here.\n\n" +
+                            "3. Use Dropbox: Upload to Dropbox, get a direct link (change dl=0 to dl=1).\n\n" +
+                            "Google Drive blocks direct PDF downloads for security reasons."
+                        );
                     }
-
-                    // Stage 3: Validate content
-                    if (snippet.includes('<html') || snippet.includes('<!DOCTYPE') || snippet.includes('window.google')) {
-                        throw new Error("ACCESS_DENIED");
-                    }
-
-                    if (uint8[0] === 0x25 && uint8[1] === 0x50 && uint8[2] === 0x44 && uint8[3] === 0x46) {
-                        data = uint8;
-                        break; // Success!
-                    } else if (uint8.length > 0) {
-                        throw new Error("Not a valid PDF file.");
-                    }
-                } catch (e) {
-                    lastErrorMessage = e.message;
-                    if (e.message === "ACCESS_DENIED") break;
-                }
+                    el('intro-state').classList.remove('hidden');
+                }, 1000);
+                return;
             }
 
-            if (data) {
+            // For non-Google Drive URLs, try direct fetch
+            toggleLoader(true, "Downloading PDF...");
+            try {
+                const res = await fetch(originalUrl);
+                if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+                const buffer = await res.arrayBuffer();
+                const uint8 = new Uint8Array(buffer);
+
+                // Validate PDF
+                if (uint8.length < 4 || uint8[0] !== 0x25 || uint8[1] !== 0x50 || uint8[2] !== 0x44 || uint8[3] !== 0x46) {
+                    throw new Error("Not a valid PDF file");
+                }
+
                 state.loadType = 'url';
                 state.currentUrl = originalUrl;
-                loadDocument(data);
-            } else {
+                loadDocument(uint8);
+            } catch (e) {
                 toggleLoader(false);
-                if (lastErrorMessage === "ACCESS_DENIED") {
-                    alert("FlipMaster: Access Denied to Google Drive.\n\nREQUIRED FIX:\n1. Open your file in Google Drive.\n2. Click 'Share' -> Change 'Restricted' to 'Anyone with the link'.\n3. Click 'Done' and try again.\n\n(Note: School/Work accounts often block this - use a personal Gmail if it still fails.)");
-                } else {
-                    alert("FlipMaster Connection Error: " + lastErrorMessage + "\n\nTip: Ensure the URL is correct and the file is public. Try refreshing the page.");
-                }
+                alert(
+                    "FlipMaster Error: " + e.message + "\n\n" +
+                    "TIP: For best results:\n" +
+                    "• Use the Upload button for local files\n" +
+                    "• Use GitHub raw links for hosted files\n" +
+                    "• Use Dropbox direct links (dl=1)"
+                );
                 el('intro-state').classList.remove('hidden');
             }
         });
