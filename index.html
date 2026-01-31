@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FlipMaster Pro</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -25,8 +26,9 @@
             --text-sub: #94a3b8;
             --accent: #38bdf8;
             --border: rgba(148, 163, 184, 0.2);
-            --shadow: rgba(0,0,0,0.6);
+            --shadow: rgba(0, 0, 0, 0.6);
         }
+
         :root[data-theme="day"] {
             --bg-main: #f8fafc;
             --bg-gradient: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
@@ -34,9 +36,10 @@
             --text-main: #0f172a;
             --text-sub: #64748b;
             --accent: #0284c7;
-            --border: rgba(0,0,0,0.1);
-            --shadow: rgba(0,0,0,0.15);
+            --border: rgba(0, 0, 0, 0.1);
+            --shadow: rgba(0, 0, 0, 0.15);
         }
+
         :root[data-theme="dusty"] {
             --bg-main: #e6dac3;
             --bg-gradient: radial-gradient(circle at center, #f5eadd 0%, #e6dac3 100%);
@@ -49,13 +52,14 @@
         }
 
         /* MOBILE BASICS */
-        html, body {
+        html,
+        body {
             height: 100%;
             width: 100%;
             margin: 0;
             padding: 0;
-            overscroll-behavior: none; 
-            overflow: hidden; 
+            overscroll-behavior: none;
+            overflow: hidden;
         }
 
         body {
@@ -73,8 +77,8 @@
         }
 
         /* Book wrapper interactions */
-        .book-wrapper { 
-            box-shadow: 0 10px 30px -10px var(--shadow); 
+        .book-wrapper {
+            box-shadow: 0 10px 30px -10px var(--shadow);
             transition: box-shadow 0.3s ease;
         }
 
@@ -87,16 +91,41 @@
         }
 
         /* Scrollbars */
-        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
 
-        .loader { border-top-color: var(--accent); animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .modal-bg { background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
-        
-        input, select, button, textarea { font-size: 16px !important; }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        .loader {
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .sidebar {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-bg {
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+        }
+
+        input,
+        select,
+        button,
+        textarea {
+            font-size: 16px !important;
+        }
 
         /* Custom Select Style for Header */
         .custom-select {
@@ -108,30 +137,39 @@
             font-size: 0.75rem !important;
             outline: none;
             cursor: pointer;
-            appearance: none; /* Hide default arrow */
+            appearance: none;
+            /* Hide default arrow */
             text-align: center;
         }
-        .custom-select:hover { border-color: var(--accent); color: var(--text-main); }
+
+        .custom-select:hover {
+            border-color: var(--accent);
+            color: var(--text-main);
+        }
     </style>
 </head>
+
 <body class="h-[100dvh] w-screen flex flex-col relative overflow-hidden">
 
-    <header class="h-14 flex items-center justify-between px-2 sm:px-4 z-[60] relative glass-panel border-b-0 border-b border-[var(--border)] shadow-sm shrink-0">
-        
+    <header
+        class="h-14 flex items-center justify-between px-2 sm:px-4 z-[60] relative glass-panel border-b-0 border-b border-[var(--border)] shadow-sm shrink-0">
+
         <div class="flex items-center gap-2 sm:gap-3">
-            <button id="toggleSidebar" class="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--text-sub)] hover:text-[var(--text-main)] transition">
+            <button id="toggleSidebar"
+                class="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--text-sub)] hover:text-[var(--text-main)] transition">
                 <i class="fa-solid fa-bars fa-lg"></i>
             </button>
             <div class="flex items-center gap-2 select-none">
                 <div class="w-7 h-7 rounded bg-[var(--accent)] flex items-center justify-center text-white shadow-lg">
                     <i class="fa-solid fa-book-open text-xs"></i>
                 </div>
-                <h1 class="font-bold text-base tracking-wide hidden sm:block">Flip<span style="color: var(--accent)">Master</span></h1>
+                <h1 class="font-bold text-base tracking-wide hidden sm:block">Flip<span
+                        style="color: var(--accent)">Master</span></h1>
             </div>
         </div>
 
         <div class="flex items-center gap-2">
-            
+
             <div class="relative group" title="Page Layout">
                 <select id="viewModeSelect" onchange="changeViewMode(this.value)" class="custom-select w-20 sm:w-24">
                     <option value="auto">Auto Fit</option>
@@ -139,28 +177,38 @@
                     <option value="landscape">Landscape</option>
                     <option value="square">Square</option>
                 </select>
-                <div class="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[var(--text-sub)] text-[10px]">
+                <div
+                    class="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[var(--text-sub)] text-[10px]">
                     <i class="fa-solid fa-caret-down"></i>
                 </div>
             </div>
 
-            <button onclick="cycleTheme()" id="themeBtn" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)] transition" title="Change Theme">
+            <button onclick="cycleTheme()" id="themeBtn"
+                class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)] transition"
+                title="Change Theme">
                 <i class="fa-solid fa-circle-half-stroke"></i>
             </button>
 
-            <button onclick="toggleFullScreen()" id="fsBtn" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)] transition" title="Full Screen">
+            <button onclick="toggleFullScreen()" id="fsBtn"
+                class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)] transition"
+                title="Full Screen">
                 <i class="fa-solid fa-expand"></i>
             </button>
 
-            <button onclick="toggleUrlModal(true)" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)]" title="Load URL">
+            <button onclick="toggleUrlModal(true)"
+                class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)]"
+                title="Load URL">
                 <i class="fa-solid fa-link"></i>
             </button>
-            
-            <button id="btnShare" class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)]" title="Share & Embed">
+
+            <button id="btnShare"
+                class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)]"
+                title="Share & Embed">
                 <i class="fa-solid fa-share-nodes"></i>
             </button>
 
-            <label class="cursor-pointer bg-[var(--accent)] hover:brightness-110 text-white p-2 sm:px-4 sm:py-2 rounded-lg font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">
+            <label
+                class="cursor-pointer bg-[var(--accent)] hover:brightness-110 text-white p-2 sm:px-4 sm:py-2 rounded-lg font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
                 <span class="hidden sm:inline text-sm">Upload</span>
                 <input type="file" id="inpFile" accept="application/pdf" class="hidden">
@@ -168,28 +216,35 @@
         </div>
     </header>
 
-    <aside id="sidebar" class="sidebar fixed top-14 left-0 h-[calc(100dvh-3.5rem)] w-64 glass-panel border-r border-[var(--border)] transform -translate-x-full z-[70] flex flex-col">
+    <aside id="sidebar"
+        class="sidebar fixed top-14 left-0 h-[calc(100dvh-3.5rem)] w-64 glass-panel border-r border-[var(--border)] transform -translate-x-full z-[70] flex flex-col">
         <div class="p-4 border-b border-[var(--border)]">
             <h2 class="font-bold mb-3 text-[var(--text-main)] text-xs uppercase tracking-wider opacity-80">Chapters</h2>
-            <div class="flex rounded-lg overflow-hidden border border-[var(--border)] focus-within:border-[var(--accent)] transition">
-                <input type="number" id="jumpInput" placeholder="Page" class="w-full bg-[var(--bg-main)] text-[var(--text-main)] px-3 py-2 outline-none text-sm">
-                <button id="jumpBtn" class="bg-[var(--bg-panel)] hover:bg-[var(--accent)] hover:text-white px-3 py-2 text-xs font-bold border-l border-[var(--border)]">GO</button>
+            <div
+                class="flex rounded-lg overflow-hidden border border-[var(--border)] focus-within:border-[var(--accent)] transition">
+                <input type="number" id="jumpInput" placeholder="Page"
+                    class="w-full bg-[var(--bg-main)] text-[var(--text-main)] px-3 py-2 outline-none text-sm">
+                <button id="jumpBtn"
+                    class="bg-[var(--bg-panel)] hover:bg-[var(--accent)] hover:text-white px-3 py-2 text-xs font-bold border-l border-[var(--border)]">GO</button>
             </div>
         </div>
         <div id="toc-container" class="flex-1 overflow-y-auto p-2 sidebar-scroll"></div>
     </aside>
     <div id="backdrop" class="fixed inset-0 bg-black/60 z-[65] hidden backdrop-blur-sm"></div>
 
-    <main id="main-area" class="flex-1 relative flex items-center justify-center overflow-hidden w-full perspective-1000 h-full touch-none">
-        
+    <main id="main-area"
+        class="flex-1 relative flex items-center justify-center overflow-hidden w-full perspective-1000 h-full touch-none">
+
         <div id="fit-badge" class="absolute top-2 right-2 z-30 opacity-50 hover:opacity-100 transition hidden">
-             <div class="bg-[var(--bg-panel)] text-[var(--text-sub)] text-[10px] px-2 py-1 rounded border border-[var(--border)] pointer-events-none">
+            <div
+                class="bg-[var(--bg-panel)] text-[var(--text-sub)] text-[10px] px-2 py-1 rounded border border-[var(--border)] pointer-events-none">
                 <i class="fa-solid fa-ruler-combined"></i> <span id="fit-text">Auto Fit</span>
             </div>
         </div>
 
         <div id="intro-state" class="text-center p-6 transition-opacity duration-500 max-w-sm mx-auto z-10">
-            <div class="inline-block p-6 rounded-full bg-[var(--bg-panel)] mb-4 border border-[var(--border)] shadow-2xl">
+            <div
+                class="inline-block p-6 rounded-full bg-[var(--bg-panel)] mb-4 border border-[var(--border)] shadow-2xl">
                 <i class="fa-solid fa-book-open-reader text-5xl" style="color: var(--accent)"></i>
             </div>
             <h2 class="text-2xl font-bold mb-2">FlipMaster</h2>
@@ -200,44 +255,56 @@
 
         <div id="loader" class="hidden absolute inset-0 z-[80] bg-black/90 flex flex-col items-center justify-center">
             <div class="loader rounded-full border-4 border-t-4 h-10 w-10 mb-4"></div>
-            <p id="loading-text" class="text-white font-mono animate-pulse text-xs tracking-widest uppercase">Loading...</p>
+            <p id="loading-text" class="text-white font-mono animate-pulse text-xs tracking-widest uppercase">Loading...
+            </p>
         </div>
 
-        <div id="zoom-wrapper" class="transition-transform duration-100 ease-out origin-center w-full h-full flex items-center justify-center will-change-transform">
+        <div id="zoom-wrapper"
+            class="transition-transform duration-100 ease-out origin-center w-full h-full flex items-center justify-center will-change-transform">
             <div id="book-container" class="hidden relative book-wrapper"></div>
         </div>
     </main>
 
-    <div id="controls" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-4 py-2 flex items-center gap-3 shadow-2xl z-[60] border border-[var(--border)] w-auto max-w-[95vw] whitespace-nowrap">
-        
-        <button id="zoomOut" class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition">
+    <div id="controls"
+        class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-4 py-2 flex items-center gap-3 shadow-2xl z-[60] border border-[var(--border)] w-auto max-w-[95vw] whitespace-nowrap">
+
+        <button id="zoomOut"
+            class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition">
             <i class="fa-solid fa-minus"></i>
         </button>
 
-        <button id="prevBtn" class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition"><i class="fa-solid fa-chevron-left"></i></button>
-        
+        <button id="prevBtn"
+            class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition"><i
+                class="fa-solid fa-chevron-left"></i></button>
+
         <span class="font-mono text-xs text-[var(--text-main)] font-bold select-none min-w-[50px] text-center">
             <span id="currentPage">0</span>/<span id="totalPages">0</span>
         </span>
-        
-        <button id="nextBtn" class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition"><i class="fa-solid fa-chevron-right"></i></button>
-        
-        <button id="zoomIn" class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition">
+
+        <button id="nextBtn"
+            class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition"><i
+                class="fa-solid fa-chevron-right"></i></button>
+
+        <button id="zoomIn"
+            class="w-8 h-8 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--accent)] active:scale-90 transition">
             <i class="fa-solid fa-plus"></i>
         </button>
 
         <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
-        
-        <button id="zoomReset" class="text-[var(--text-sub)] hover:text-[var(--accent)] text-xs" title="Reset View"><i class="fa-solid fa-compress"></i></button>
+
+        <button id="zoomReset" class="text-[var(--text-sub)] hover:text-[var(--accent)] text-xs" title="Reset View"><i
+                class="fa-solid fa-compress"></i></button>
     </div>
 
     <div id="urlModal" class="fixed inset-0 z-[100] modal-bg hidden flex items-center justify-center p-4">
         <div class="glass-panel w-full max-w-sm rounded-2xl shadow-2xl p-5">
             <h3 class="font-bold text-lg mb-3 text-[var(--text-main)]">Load PDF URL</h3>
-            <input type="text" id="urlInput" placeholder="https://..." class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded-lg p-3 outline-none text-sm mb-4">
+            <input type="text" id="urlInput" placeholder="https://..."
+                class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded-lg p-3 outline-none text-sm mb-4">
             <div class="flex justify-end gap-2">
                 <button onclick="toggleUrlModal(false)" class="text-[var(--text-sub)] px-3 py-2 text-sm">Cancel</button>
-                <button id="btnFetchUrl" class="bg-[var(--accent)] text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg">Open</button>
+                <button id="btnFetchUrl"
+                    class="bg-[var(--accent)] text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg">Open</button>
             </div>
         </div>
     </div>
@@ -246,12 +313,13 @@
         <div class="glass-panel w-full max-w-lg rounded-2xl shadow-2xl p-5 flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center mb-4 border-b border-[var(--border)] pb-2">
                 <h3 class="font-bold text-lg text-[var(--text-main)]">Share Material</h3>
-                <button onclick="toggleShareModal(false)" class="text-[var(--text-sub)]"><i class="fa-solid fa-xmark fa-lg"></i></button>
+                <button onclick="toggleShareModal(false)" class="text-[var(--text-sub)]"><i
+                        class="fa-solid fa-xmark fa-lg"></i></button>
             </div>
-            
+
             <div class="overflow-y-auto space-y-5">
                 <div id="shareUrlMode" class="hidden space-y-5">
-                    
+
                     <div>
                         <div class="flex items-center gap-2 mb-2 text-[var(--accent)]">
                             <i class="fa-solid fa-link"></i>
@@ -259,8 +327,10 @@
                         </div>
                         <p class="text-[var(--text-sub)] text-xs mb-2">Share this link directly with students.</p>
                         <div class="flex gap-2">
-                            <input type="text" id="shareDirectLink" readonly class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-xs font-mono select-all">
-                            <button onclick="copyToClipboard('shareDirectLink')" class="bg-[var(--accent)] text-white px-3 rounded text-xs font-bold hover:brightness-110">Copy</button>
+                            <input type="text" id="shareDirectLink" readonly
+                                class="w-full bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-xs font-mono select-all">
+                            <button onclick="copyToClipboard('shareDirectLink')"
+                                class="bg-[var(--accent)] text-white px-3 rounded text-xs font-bold hover:brightness-110">Copy</button>
                         </div>
                     </div>
 
@@ -271,21 +341,30 @@
                             <i class="fa-solid fa-code"></i>
                             <span class="font-bold text-sm uppercase tracking-wide">Embed Code (HTML)</span>
                         </div>
-                        <p class="text-[var(--text-sub)] text-xs mb-2">Copy this code to add the book to any study website.</p>
+                        <p class="text-[var(--text-sub)] text-xs mb-2">Copy this code to add the book to any study
+                            website.</p>
                         <div class="relative">
-                            <textarea id="shareEmbedCode" readonly class="w-full h-24 bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-xs font-mono resize-none select-all"></textarea>
-                            <button onclick="copyToClipboard('shareEmbedCode')" class="absolute top-2 right-2 bg-[var(--accent)] text-white px-3 py-1 rounded text-xs font-bold hover:brightness-110 shadow-lg">Copy Code</button>
+                            <textarea id="shareEmbedCode" readonly
+                                class="w-full h-24 bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border)] rounded p-2 text-xs font-mono resize-none select-all"></textarea>
+                            <button onclick="copyToClipboard('shareEmbedCode')"
+                                class="absolute top-2 right-2 bg-[var(--accent)] text-white px-3 py-1 rounded text-xs font-bold hover:brightness-110 shadow-lg">Copy
+                                Code</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="shareFileMode" class="hidden">
-                    <div class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg text-yellow-400 text-xs mb-3">
+                    <div
+                        class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg text-yellow-400 text-xs mb-3">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> Local File Detected
                     </div>
-                    <p class="text-[var(--text-sub)] text-sm mb-3">To get an Embed Code or Link, you must load the PDF from a URL first (e.g., GitHub, Dropbox, or your server).</p>
-                    <p class="text-[var(--text-sub)] text-sm mb-3">Currently, you can only download an offline version.</p>
-                    <button onclick="downloadStandalone()" class="w-full bg-[var(--accent)] text-white py-2 rounded-lg text-sm font-bold shadow-lg">Download Offline HTML</button>
+                    <p class="text-[var(--text-sub)] text-sm mb-3">To get an Embed Code or Link, you must load the PDF
+                        from a URL first (e.g., GitHub, Dropbox, or your server).</p>
+                    <p class="text-[var(--text-sub)] text-sm mb-3">Currently, you can only download an offline version.
+                    </p>
+                    <button onclick="downloadStandalone()"
+                        class="w-full bg-[var(--accent)] text-white py-2 rounded-lg text-sm font-bold shadow-lg">Download
+                        Offline HTML</button>
                 </div>
             </div>
         </div>
@@ -342,12 +421,12 @@
         function changeViewMode(mode) {
             state.viewMode = mode;
             el('fit-badge').classList.remove('hidden');
-            
+
             const labels = { 'auto': 'Auto Fit', 'portrait': 'Portrait', 'landscape': 'Landscape', 'square': 'Square' };
             el('fit-text').textContent = labels[mode];
 
             // Trigger re-render of layout
-            if(state.pdfDoc) {
+            if (state.pdfDoc) {
                 // Manually trigger the resize event logic
                 window.dispatchEvent(new Event('resize'));
             }
@@ -355,12 +434,12 @@
 
         // --- HELPERS ---
         function isMobile() { return window.innerWidth < 768; }
-        
+
         function getOptimalBookDimensions() {
             // Get available space (subtracting headers/margins)
             const w = window.innerWidth;
             const h = window.innerHeight;
-            
+
             // Margins for UI
             const marginX = isMobile() ? 20 : 60;
             const marginY = isMobile() ? 160 : 120; // Space for Header + Controls
@@ -404,13 +483,13 @@
             } else if (state.viewMode === 'landscape') {
                 // Force Landscape: Ratio approx 1.41 : 1
                 const ratio = 1.41; // Width is larger
-                
-                finalW = maxW / (isMobile() ? 1 : 2); 
-                if(isMobile()) finalW = (w - 40) / 2; 
+
+                finalW = maxW / (isMobile() ? 1 : 2);
+                if (isMobile()) finalW = (w - 40) / 2;
                 else finalW = 550;
 
                 finalH = finalW * 1.41; // Standard A4 ratio
-                if(finalH > maxH) {
+                if (finalH > maxH) {
                     finalH = maxH;
                     finalW = finalH / 1.41;
                 }
@@ -430,10 +509,10 @@
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             const pdfUrl = params.get('pdf');
-            if(pdfUrl) {
+            if (pdfUrl) {
                 el('urlInput').value = pdfUrl;
                 el('btnFetchUrl').click();
-                
+
                 // If loaded via embed/share link, clean UI slightly
                 // Optional: remove header if you want pure embed mode
                 // document.querySelector('header').style.display = 'none'; 
@@ -443,7 +522,7 @@
 
         // --- FILE & URL LOADING ---
         el('inpFile').addEventListener('change', async (e) => {
-            if(e.target.files[0]) {
+            if (e.target.files[0]) {
                 state.loadType = 'file';
                 state.currentUrl = null;
                 const file = e.target.files[0];
@@ -456,21 +535,81 @@
         });
 
         el('btnFetchUrl').addEventListener('click', async () => {
-            const url = el('urlInput').value.trim();
-            if(!url) return;
+            let originalUrl = el('urlInput').value.trim();
+            if (!originalUrl) return;
+
+            let driveId = null;
+            // Robust Drive ID extraction
+            const drivePatterns = [
+                /\/file\/d\/([\w-]+)/,
+                /\/d\/([\w-]+)/,
+                /[?&]id=([\w-]+)/,
+                /\/open\?id=([\w-]+)/,
+                /drive\.google\.com\/uc\?id=([\w-]+)/
+            ];
+
+            for (const pattern of drivePatterns) {
+                const match = originalUrl.match(pattern);
+                if (match && match[1]) { driveId = match[1]; break; }
+            }
+
             toggleUrlModal(false);
-            toggleLoader(true, "Downloading...");
-            try {
-                const res = await fetch(url);
-                if(!res.ok) throw new Error("CORS Error");
-                const blob = await res.blob();
+            toggleLoader(true, driveId ? "Connecting to Google Drive..." : "Downloading PDF...");
+
+            const directLink = driveId
+                ? `https://drive.google.com/uc?export=download&id=${driveId}&confirm=t`
+                : originalUrl;
+
+            // List of CORS proxies to try
+            const proxies = [
+                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                (url) => url // Final attempt without proxy
+            ];
+
+            let lastError = "";
+            let data = null;
+
+            for (const proxyFn of proxies) {
+                try {
+                    const fetchUrl = proxyFn(directLink);
+                    const res = await fetch(fetchUrl);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                    const buffer = await res.arrayBuffer();
+                    const uint8 = new Uint8Array(buffer);
+
+                    if (uint8.length < 100) throw new Error("File too small");
+
+                    // Check if it's actually HTML (meaning Google Drive is showing a login/permission page)
+                    const snippet = new TextDecoder().decode(uint8.slice(0, 500));
+                    if (snippet.includes('<html') || snippet.includes('<!DOCTYPE') || snippet.includes('google.com/url')) {
+                        throw new Error("ACCESS_DENIED");
+                    }
+
+                    // Check PDF signature
+                    if (uint8[0] === 0x25 && uint8[1] === 0x50 && uint8[2] === 0x44 && uint8[3] === 0x46) {
+                        data = uint8;
+                        break; // Success!
+                    }
+                } catch (e) {
+                    lastError = e.message;
+                    if (lastError === "ACCESS_DENIED") break;
+                }
+            }
+
+            if (data) {
                 state.loadType = 'url';
-                state.currentUrl = url;
-                const buffer = await blob.arrayBuffer();
-                loadDocument(new Uint8Array(buffer));
-            } catch(e) {
+                state.currentUrl = originalUrl;
+                loadDocument(data);
+            } else {
                 toggleLoader(false);
-                alert("Could not load URL. \n\nTip: The server must allow CORS. Try a GitHub Raw link or direct file link.");
+                if (lastError === "ACCESS_DENIED") {
+                    alert("FlipMaster: Access Denied to Google Drive.\n\nThis usually happens because:\n1. The file 'Sharing' is not set to 'Anyone with the link'.\n2. The link is from a restricted school/work account.\n\nPlease verify your Drive permissions!");
+                } else {
+                    alert("FlipMaster Error: Could not fetch PDF. \n\nTip: Make sure the link is a direct file link and allows CORS/Public access.");
+                }
+                el('intro-state').classList.remove('hidden');
             }
         });
 
@@ -478,19 +617,20 @@
         async function loadDocument(data) {
             toggleLoader(true, "Processing...");
             el('intro-state').classList.add('hidden');
-            if(state.pageFlip) { state.pageFlip.destroy(); state.pageFlip = null; }
+            if (state.pageFlip) { state.pageFlip.destroy(); state.pageFlip = null; }
             el('book-container').innerHTML = '<div id="book"></div>';
 
             try {
-                state.pdfDoc = await pdfjsLib.getDocument(data).promise;
+                state.pdfDoc = await pdfjsLib.getDocument({ data: data, verbosity: 0 }).promise;
                 el('totalPages').textContent = state.pdfDoc.numPages;
                 await renderPages(state.pdfDoc);
                 initFlipbook();
                 await generateTOC(state.pdfDoc);
                 el('book-container').classList.remove('hidden');
                 el('controls').classList.remove('hidden');
-            } catch(err) {
-                alert("Error: " + err.message);
+            } catch (err) {
+                console.error("PDF.js Error:", err);
+                alert("FlipMaster Error: " + (err.message.includes('structure') ? "Invalid PDF file structure. Try a different file." : err.message));
                 el('intro-state').classList.remove('hidden');
             } finally {
                 toggleLoader(false);
@@ -500,36 +640,36 @@
         async function renderPages(pdf) {
             const bookDiv = document.getElementById('book');
             const total = pdf.numPages;
-            const renderScale = isMobile() ? 1.5 : 1.5; 
+            const renderScale = isMobile() ? 1.5 : 1.5;
 
-            for(let i = 1; i <= total; i++) {
+            for (let i = 1; i <= total; i++) {
                 el('loading-text').textContent = `Page ${i}/${total}`;
                 const page = await pdf.getPage(i);
                 const viewport = page.getViewport({ scale: renderScale });
-                
+
                 const div = document.createElement('div');
-                div.className = "page-content shadow-sm bg-white"; 
-                
+                div.className = "page-content shadow-sm bg-white";
+
                 const canvas = document.createElement('canvas');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
                 canvas.style.cssText = "width: 100%; height: 100%; object-fit: contain;";
-                
+
                 const ctx = canvas.getContext('2d');
                 await page.render({ canvasContext: ctx, viewport }).promise;
-                
+
                 div.appendChild(canvas);
                 bookDiv.appendChild(div);
-                if(i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
             }
         }
 
         function initFlipbook() {
             const dims = getOptimalBookDimensions();
             const bookElement = document.getElementById('book');
-            
+
             let usePortraitMode = false;
-            
+
             if (state.viewMode === 'portrait' || state.viewMode === 'square') {
                 usePortraitMode = true;
             } else if (state.viewMode === 'auto' && isMobile() && window.innerHeight > window.innerWidth) {
@@ -557,7 +697,7 @@
         // --- ZOOM & TOUCH LOGIC ---
         function updateTransform() {
             const wrapper = el('zoom-wrapper');
-            if(state.scale <= 1) { state.panX = 0; state.panY = 0; }
+            if (state.scale <= 1) { state.panX = 0; state.panY = 0; }
             wrapper.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
         }
 
@@ -568,11 +708,11 @@
 
         el('zoomIn').onclick = () => setZoom(state.scale + 0.5);
         el('zoomOut').onclick = () => setZoom(state.scale - 0.5);
-        el('zoomReset').onclick = () => { 
-            state.scale = 1; 
-            state.panX = 0; 
-            state.panY = 0; 
-            updateTransform(); 
+        el('zoomReset').onclick = () => {
+            state.scale = 1;
+            state.panX = 0;
+            state.panY = 0;
+            updateTransform();
         };
 
         function setupTouchGestures() {
@@ -620,16 +760,16 @@
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                if(!state.pdfDoc) return;
+                if (!state.pdfDoc) return;
                 const currentPage = state.pageFlip ? state.pageFlip.getCurrentPageIndex() : 0;
-                if(state.pageFlip) state.pageFlip.destroy();
+                if (state.pageFlip) state.pageFlip.destroy();
                 el('book-container').innerHTML = '<div id="book"></div>';
-                
+
                 toggleLoader(true, "Adjusting Layout...");
                 setTimeout(async () => {
                     await renderPages(state.pdfDoc);
                     initFlipbook();
-                    try { state.pageFlip.flip(currentPage, false); } catch(e){}
+                    try { state.pageFlip.flip(currentPage, false); } catch (e) { }
                     toggleLoader(false);
                 }, 100);
             }, 500);
@@ -637,13 +777,13 @@
 
         // --- SHARE & UI HELPERS ---
         el('btnShare').onclick = () => {
-            if(!state.pdfDoc) { alert("Load PDF first."); return; }
+            if (!state.pdfDoc) { alert("Load PDF first."); return; }
             toggleShareModal(true);
-            
-            if(state.loadType === 'url') {
+
+            if (state.loadType === 'url') {
                 el('shareUrlMode').classList.remove('hidden');
                 el('shareFileMode').classList.add('hidden');
-                
+
                 // 1. Generate Direct Link
                 const baseUrl = window.location.href.split('?')[0];
                 const link = `${baseUrl}?pdf=${encodeURIComponent(state.currentUrl)}`;
@@ -661,7 +801,7 @@
         };
 
         window.downloadStandalone = () => {
-             const injection = `
+            const injection = `
             <script>
                 const autoLoadData = "${state.fileBase64}";
                 function dataURItoUint8Array(dataURI) {
@@ -679,7 +819,7 @@
                 });
             <\/script>`;
             const html = document.documentElement.outerHTML.replace('</body>', injection + '</body>');
-            const blob = new Blob([html], {type: "text/html"});
+            const blob = new Blob([html], { type: "text/html" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             link.download = "FlipBook-Viewer.html";
@@ -688,13 +828,13 @@
 
         function toggleUrlModal(show) { el('urlModal').style.display = show ? 'flex' : 'none'; }
         function toggleShareModal(show) { el('shareModal').style.display = show ? 'flex' : 'none'; }
-        function toggleLoader(show, text) { 
+        function toggleLoader(show, text) {
             const l = el('loader');
-            if(show) { l.classList.remove('hidden'); el('loading-text').textContent = text; }
-            else l.classList.add('hidden'); 
+            if (show) { l.classList.remove('hidden'); el('loading-text').textContent = text; }
+            else l.classList.add('hidden');
         }
         function copyToClipboard(id) {
-            el(id).select(); navigator.clipboard.writeText(el(id).value).then(()=>alert("Copied to clipboard!"));
+            el(id).select(); navigator.clipboard.writeText(el(id).value).then(() => alert("Copied to clipboard!"));
         }
 
         el('toggleSidebar').onclick = () => {
@@ -703,34 +843,34 @@
             el('backdrop').classList.toggle('hidden', !state.isSidebarOpen);
         }
         el('backdrop').onclick = el('toggleSidebar').onclick;
-        
+
         el('prevBtn').onclick = () => state.pageFlip.flipPrev();
         el('nextBtn').onclick = () => state.pageFlip.flipNext();
-        
+
         el('jumpBtn').onclick = () => {
             const page = parseInt(el('jumpInput').value);
-            if(page > 0 && state.pageFlip) state.pageFlip.flip(page - 1);
+            if (page > 0 && state.pageFlip) state.pageFlip.flip(page - 1);
         };
 
         async function generateTOC(pdf) {
             const container = el('toc-container');
             container.innerHTML = "";
             const outline = await pdf.getOutline();
-            if(!outline) { container.innerHTML = `<div class="text-center mt-5 text-[var(--text-sub)] text-xs">No chapters found.</div>`; return; }
+            if (!outline) { container.innerHTML = `<div class="text-center mt-5 text-[var(--text-sub)] text-xs">No chapters found.</div>`; return; }
             const ul = document.createElement('ul');
             ul.className = "space-y-1";
-            for(const item of outline) {
+            for (const item of outline) {
                 const li = document.createElement('li');
                 const div = document.createElement('div');
                 div.className = "p-2 rounded cursor-pointer text-sm text-[var(--text-sub)] hover:bg-[var(--accent)] hover:text-white truncate";
                 div.textContent = item.title;
                 div.onclick = async () => {
-                    if(item.dest) {
+                    if (item.dest) {
                         const dest = typeof item.dest === 'string' ? await pdf.getDestination(item.dest) : item.dest;
-                        if(dest) {
+                        if (dest) {
                             const index = await pdf.getPageIndex(dest[0]);
                             state.pageFlip.flip(index);
-                            if(isMobile()) el('toggleSidebar').click();
+                            if (isMobile()) el('toggleSidebar').click();
                         }
                     }
                 };
@@ -741,4 +881,5 @@
         }
     </script>
 </body>
+
 </html>
