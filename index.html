@@ -565,31 +565,35 @@
             }
 
             toggleUrlModal(false);
-            toggleLoader(true, driveId ? "Connecting to Google Drive..." : "Downloading PDF...");
+            toggleLoader(true, driveId ? "Checking Google Drive..." : "Connecting to Link...");
 
-            // Use our NEW Local Cloudflare Proxy
             const proxyBase = window.location.origin + "/proxy?url=";
             const baseDriveLink = driveId
                 ? `https://drive.google.com/uc?export=download&id=${driveId}`
                 : originalUrl;
 
-            let data = null;
-            let lastErrorMessage = "";
-
-            async function fetchWithConfirm(url) {
-                const fullUrl = proxyBase + encodeURIComponent(url);
-                const res = await fetch(fullUrl);
+            // 1. Resolve potential confirmation pages without downloading the whole file
+            async function getFinalUrl(url) {
+                const fullProxyUrl = proxyBase + encodeURIComponent(url);
+                const res = await fetch(fullProxyUrl);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-                const buffer = await res.arrayBuffer();
-                const uint8 = new Uint8Array(buffer);
-                const snippet = new TextDecoder().decode(uint8.slice(0, 10000));
+                // Check Content-Type - if it's already a PDF, don't read body
+                const ct = res.headers.get('Content-Type') || '';
+                if (ct.includes('application/pdf')) return url;
 
-                // If Google shows a virus scan confirmation page
+                // Read just the first chunk to check for confirmation snippet
+                const reader = res.body.getReader();
+                const { value, done } = await reader.read();
+                if (done || !value) return url;
+
+                const snippet = new TextDecoder().decode(value.slice(0, 10000));
+                reader.cancel(); // STOP downloading the rest immediately
+
                 if (snippet.includes('confirm=') && snippet.includes('download')) {
                     const tokenMatch = snippet.match(/confirm=([a-zA-Z0-9_-]+)/);
                     if (tokenMatch && tokenMatch[1]) {
-                        return fetchWithConfirm(url + "&confirm=" + tokenMatch[1]);
+                        return url + "&confirm=" + tokenMatch[1];
                     }
                 }
 
@@ -598,80 +602,144 @@
                     throw new Error("ACCESS_DENIED");
                 }
 
-                return uint8;
+                return url;
             }
 
             try {
-                // Try with confirmation bypass first
-                data = await fetchWithConfirm(baseDriveLink + "&confirm=t");
-
-                // Final Check: Is it a PDF?
-                if (data[0] !== 0x25 || data[1] !== 0x50 || data[2] !== 0x44 || data[3] !== 0x46) {
-                    throw new Error("The file is not a valid PDF document.");
-                }
+                const finalLink = await getFinalUrl(baseDriveLink + "&confirm=t");
+                const finalProxyUrl = proxyBase + encodeURIComponent(finalLink);
 
                 state.loadType = 'url';
                 state.currentUrl = originalUrl;
-                loadDocument(data);
+
+                // Pass URL to loadDocument instead of raw data
+                loadDocument(finalProxyUrl, true);
             } catch (e) {
                 toggleLoader(false);
                 if (e.message === "ACCESS_DENIED") {
                     alert("FlipMaster: Access Denied.\n\nREQUIRED FIX: Open the file in Google Drive, click 'Share' and change 'Restricted' to 'Anyone with the link'.");
                 } else {
-                    alert("FlipMaster Error: " + e.message + "\n\nTip: For Google Drive, ensure the file is public. For other links, ensure they are direct PDF links.");
+                    alert("FlipMaster Error: " + e.message + "\n\nTip: Ensure the file is public and the link is correct.");
                 }
                 el('intro-state').classList.remove('hidden');
             }
         });
 
         // --- CORE PDF LOGIC ---
-        async function loadDocument(data) {
-            toggleLoader(true, "Processing...");
+        async function loadDocument(input, isUrl = false) {
+            toggleLoader(true, "Opening PDF...");
             el('intro-state').classList.add('hidden');
             if (state.pageFlip) { state.pageFlip.destroy(); state.pageFlip = null; }
             el('book-container').innerHTML = '<div id="book"></div>';
 
             try {
-                state.pdfDoc = await pdfjsLib.getDocument({ data: data, verbosity: 0 }).promise;
+                const config = isUrl ? { url: input } : { data: input };
+                config.verbosity = 0;
+
+                state.pdfDoc = await pdfjsLib.getDocument(config).promise;
                 el('totalPages').textContent = state.pdfDoc.numPages;
-                await renderPages(state.pdfDoc);
+
+                // Initialize shells and flipbook first
+                await createPageShells(state.pdfDoc);
                 initFlipbook();
+
+                // Start background rendering
+                renderPagesSequentially(state.pdfDoc);
+
                 await generateTOC(state.pdfDoc);
                 el('book-container').classList.remove('hidden');
                 el('controls').classList.remove('hidden');
+                toggleLoader(false);
             } catch (err) {
                 console.error("PDF.js Error:", err);
-                alert("FlipMaster Error: " + (err.message.includes('structure') ? "Invalid PDF file structure. Try a different file." : err.message));
+                alert("FlipMaster Error: " + (err.message.includes('structure') ? "Invalid PDF structure." : err.message));
                 el('intro-state').classList.remove('hidden');
-            } finally {
                 toggleLoader(false);
             }
         }
 
-        async function renderPages(pdf) {
+        async function createPageShells(pdf) {
             const bookDiv = document.getElementById('book');
             const total = pdf.numPages;
-            const renderScale = isMobile() ? 1.5 : 1.5;
-
             for (let i = 1; i <= total; i++) {
-                el('loading-text').textContent = `Page ${i}/${total}`;
-                const page = await pdf.getPage(i);
-                const viewport = page.getViewport({ scale: renderScale });
-
                 const div = document.createElement('div');
                 div.className = "page-content shadow-sm bg-white";
-
-                const canvas = document.createElement('canvas');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                canvas.style.cssText = "width: 100%; height: 100%; object-fit: contain;";
-
-                const ctx = canvas.getContext('2d');
-                await page.render({ canvasContext: ctx, viewport }).promise;
-
-                div.appendChild(canvas);
+                div.innerHTML = `<div class="flex flex-col items-center justify-center text-[var(--accent)] opacity-20 bg-slate-50 w-full h-full">
+                    <i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i>
+                    <span class="text-xs font-bold uppercase tracking-widest">Page ${i}</span>
+                </div>`;
                 bookDiv.appendChild(div);
-                if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+        }
+
+        async function renderPagesSequentially(pdf) {
+            const total = pdf.numPages;
+            const renderScale = isMobile() ? 1.4 : 1.6;
+            const bookDiv = document.getElementById('book');
+            const pageElements = bookDiv.querySelectorAll('.page-content');
+
+            // Strategy: Render first 6 pages as priority, then the rest
+            const renderQueue = [];
+            for (let i = 1; i <= total; i++) renderQueue.push(i);
+
+            // Reorder queue to prioritize current page and neighbors
+            const getPriorityQueue = () => {
+                const current = state.pageFlip ? state.pageFlip.getCurrentPageIndex() + 1 : 1;
+                const sorted = [...renderQueue].sort((a, b) => {
+                    const distA = Math.abs(a - current);
+                    const distB = Math.abs(b - current);
+                    return distA - distB;
+                });
+                return sorted;
+            };
+
+            // Process queue
+            let index = 0;
+            const batchSize = 3; // Render a few at a time to keep UI responsive
+
+            const processNext = async () => {
+                if (index >= total) return;
+
+                // Prioritize visible pages
+                const currentBatch = getPriorityQueue().filter(p => !pageElements[p - 1].dataset.rendered).slice(0, batchSize);
+
+                if (currentBatch.length === 0) return;
+
+                for (const p of currentBatch) {
+                    const page = await pdf.getPage(p);
+                    const viewport = page.getViewport({ scale: renderScale });
+                    const canvas = document.createElement('canvas');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    canvas.style.cssText = "width: 100%; height: 100%; object-fit: contain;";
+
+                    const ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport }).promise;
+
+                    const container = pageElements[p - 1];
+                    container.innerHTML = '';
+                    container.appendChild(canvas);
+                    container.dataset.rendered = "true";
+                }
+
+                index += currentBatch.length;
+                // Use requestIdleCallback or setTimeout to yield to UI
+                if (window.requestIdleCallback) {
+                    window.requestIdleCallback(() => processNext());
+                } else {
+                    setTimeout(processNext, 50);
+                }
+            };
+
+            processNext();
+
+            // Re-check queue whenever user flips
+            if (state.pageFlip) {
+                state.pageFlip.on('flip', () => {
+                    // Reset index to re-evaluate priority
+                    index = pageElements.length - Array.from(pageElements).filter(e => e.dataset.rendered).length;
+                    processNext();
+                });
             }
         }
 
@@ -778,8 +846,9 @@
 
                 toggleLoader(true, "Adjusting Layout...");
                 setTimeout(async () => {
-                    await renderPages(state.pdfDoc);
+                    await createPageShells(state.pdfDoc);
                     initFlipbook();
+                    renderPagesSequentially(state.pdfDoc);
                     try { state.pageFlip.flip(currentPage, false); } catch (e) { }
                     toggleLoader(false);
                 }, 100);
