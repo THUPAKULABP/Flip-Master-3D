@@ -195,7 +195,7 @@
                 <i class="fa-solid fa-expand"></i>
             </button>
 
-            <button onclick="toggleUrlModal(true)"
+            <button id="urlBtn" onclick="toggleUrlModal(true)"
                 class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-main)]/50 text-[var(--text-sub)] hover:text-[var(--text-main)]"
                 title="Load URL">
                 <i class="fa-solid fa-link"></i>
@@ -207,7 +207,7 @@
                 <i class="fa-solid fa-share-nodes"></i>
             </button>
 
-            <label
+            <label id="uploadBtn"
                 class="cursor-pointer bg-[var(--accent)] hover:brightness-110 text-white p-2 sm:px-4 sm:py-2 rounded-lg font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
                 <span class="hidden sm:inline text-sm">Upload</span>
@@ -404,19 +404,31 @@
 
         // --- NEW FEATURES: FULL SCREEN & VIEW MODES ---
 
+        // --- FULL SCREEN HELPERS ---
         function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(e => {
-                    console.log("Fullscreen not supported or allowed");
-                });
-                el('fsBtn').innerHTML = '<i class="fa-solid fa-compress"></i>';
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+                const docElm = document.documentElement;
+                if (docElm.requestFullscreen) docElm.requestFullscreen().catch(e => console.error(e));
+                else if (docElm.mozRequestFullScreen) docElm.mozRequestFullScreen();
+                else if (docElm.webkitRequestFullScreen) docElm.webkitRequestFullScreen();
+                else if (docElm.msRequestFullscreen) docElm.msRequestFullscreen();
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                    el('fsBtn').innerHTML = '<i class="fa-solid fa-expand"></i>';
-                }
+                if (document.exitFullscreen) document.exitFullscreen().catch(e => console.error(e));
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
             }
         }
+
+        const updateFsIcon = () => {
+            const isFs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            el('fsBtn').innerHTML = isFs ? '<i class="fa-solid fa-compress"></i>' : '<i class="fa-solid fa-expand"></i>';
+        };
+
+        document.addEventListener('fullscreenchange', updateFsIcon);
+        document.addEventListener('webkitfullscreenchange', updateFsIcon);
+        document.addEventListener('mozfullscreenchange', updateFsIcon);
+        document.addEventListener('MSFullscreenChange', updateFsIcon);
 
         function changeViewMode(mode) {
             state.viewMode = mode;
@@ -427,7 +439,6 @@
 
             // Trigger re-render of layout
             if (state.pdfDoc) {
-                // Manually trigger the resize event logic
                 window.dispatchEvent(new Event('resize'));
             }
         }
@@ -513,9 +524,10 @@
                 el('urlInput').value = pdfUrl;
                 el('btnFetchUrl').click();
 
-                // If loaded via embed/share link, clean UI slightly
-                // Optional: remove header if you want pure embed mode
-                // document.querySelector('header').style.display = 'none'; 
+                // If loaded via embed/share link, hide upload/share UI
+                if (el('urlBtn')) el('urlBtn').style.display = 'none';
+                if (el('btnShare')) el('btnShare').style.display = 'none';
+                if (el('uploadBtn')) el('uploadBtn').style.display = 'none';
             }
             setupTouchGestures();
         });
