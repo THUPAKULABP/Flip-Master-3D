@@ -535,11 +535,10 @@
         });
 
         el('btnFetchUrl').addEventListener('click', async () => {
-            let originalUrl = el('urlInput').value.trim();
+            const originalUrl = el('urlInput').value.trim();
             if (!originalUrl) return;
 
             let driveId = null;
-            // Robust Drive ID extraction
             const drivePatterns = [
                 /\/file\/d\/([\w-]+)/,
                 /\/d\/([\w-]+)/,
@@ -556,45 +555,61 @@
             toggleUrlModal(false);
             toggleLoader(true, driveId ? "Connecting to Google Drive..." : "Downloading PDF...");
 
-            const directLink = driveId
-                ? `https://drive.google.com/uc?export=download&id=${driveId}&confirm=t`
-                : originalUrl;
+            // Base download link for Google Drive
+            const baseDriveLink = driveId ? `https://drive.google.com/uc?export=download&id=${driveId}` : originalUrl;
 
-            // List of CORS proxies to try
+            // Proxies to try
             const proxies = [
                 (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                (url) => url // Final attempt without proxy
+                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
             ];
 
-            let lastError = "";
             let data = null;
+            let lastErrorMessage = "All connection attempts failed.";
 
+            // Attempt fetching through each proxy
             for (const proxyFn of proxies) {
                 try {
-                    const fetchUrl = proxyFn(directLink);
-                    const res = await fetch(fetchUrl);
+                    // Stage 1: Initial fetch
+                    let currentUrl = proxyFn(baseDriveLink + "&confirm=t");
+                    let res = await fetch(currentUrl);
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-                    const buffer = await res.arrayBuffer();
-                    const uint8 = new Uint8Array(buffer);
+                    let buffer = await res.arrayBuffer();
+                    let uint8 = new Uint8Array(buffer);
+                    let snippet = new TextDecoder().decode(uint8.slice(0, 10000));
 
-                    if (uint8.length < 100) throw new Error("File too small");
+                    // Stage 2: Check for Google's "Virus Scan" / "Confirm" page
+                    if (snippet.includes('confirm=') && (snippet.includes('download') || snippet.includes('Google Drive - Virus scan warning'))) {
+                        const tokenMatch = snippet.match(/confirm=([a-zA-Z0-9_-]+)/);
+                        if (tokenMatch && tokenMatch[1]) {
+                            const confirmToken = tokenMatch[1];
+                            const confirmedLink = `${baseDriveLink}&confirm=${confirmToken}`;
 
-                    // Check if it's actually HTML (meaning Google Drive is showing a login/permission page)
-                    const snippet = new TextDecoder().decode(uint8.slice(0, 500));
-                    if (snippet.includes('<html') || snippet.includes('<!DOCTYPE') || snippet.includes('google.com/url')) {
+                            // Re-fetch using the confirm token
+                            res = await fetch(proxyFn(confirmedLink));
+                            if (res.ok) {
+                                buffer = await res.arrayBuffer();
+                                uint8 = new Uint8Array(buffer);
+                                snippet = new TextDecoder().decode(uint8.slice(0, 1000));
+                            }
+                        }
+                    }
+
+                    // Stage 3: Validate content
+                    if (snippet.includes('<html') || snippet.includes('<!DOCTYPE') || snippet.includes('window.google')) {
                         throw new Error("ACCESS_DENIED");
                     }
 
-                    // Check PDF signature
                     if (uint8[0] === 0x25 && uint8[1] === 0x50 && uint8[2] === 0x44 && uint8[3] === 0x46) {
                         data = uint8;
                         break; // Success!
+                    } else if (uint8.length > 0) {
+                        throw new Error("Not a valid PDF file.");
                     }
                 } catch (e) {
-                    lastError = e.message;
-                    if (lastError === "ACCESS_DENIED") break;
+                    lastErrorMessage = e.message;
+                    if (e.message === "ACCESS_DENIED") break;
                 }
             }
 
@@ -604,10 +619,10 @@
                 loadDocument(data);
             } else {
                 toggleLoader(false);
-                if (lastError === "ACCESS_DENIED") {
-                    alert("FlipMaster: Access Denied to Google Drive.\n\nThis usually happens because:\n1. The file 'Sharing' is not set to 'Anyone with the link'.\n2. The link is from a restricted school/work account.\n\nPlease verify your Drive permissions!");
+                if (lastErrorMessage === "ACCESS_DENIED") {
+                    alert("FlipMaster: Access Denied to Google Drive.\n\nREQUIRED FIX:\n1. Open your file in Google Drive.\n2. Click 'Share' -> Change 'Restricted' to 'Anyone with the link'.\n3. Click 'Done' and try again.\n\n(Note: School/Work accounts often block this - use a personal Gmail if it still fails.)");
                 } else {
-                    alert("FlipMaster Error: Could not fetch PDF. \n\nTip: Make sure the link is a direct file link and allows CORS/Public access.");
+                    alert("FlipMaster Connection Error: " + lastErrorMessage + "\n\nTip: Ensure the URL is correct and the file is public. Try refreshing the page.");
                 }
                 el('intro-state').classList.remove('hidden');
             }
